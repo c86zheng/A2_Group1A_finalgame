@@ -1,0 +1,323 @@
+{
+    "automappingRulesFile": "",
+    "commands": [
+    ],
+    "compatibilityVersion": 1100,
+    "extensionsPath": "extensions",
+    "folders": [
+        "."
+    ],
+    "properties": [
+    ],
+    "propertyTypes": [
+        {
+            "color": "#ffa0a0a4",
+            "drawFill": true,
+            "id": 12,
+            "members": [
+                {
+                    "name": "item",
+                    "propertyType": "item",
+                    "type": "class",
+                    "value": {
+                    }
+                }
+            ],
+            "name": "book",
+            "type": "class",
+            "useAs": [
+                "property",
+                "map",
+                "layer",
+                "object",
+                "tile",
+                "tileset",
+                "wangcolor",
+                "wangset",
+                "project"
+            ]
+        },
+        {
+            "color": "#ffa0a0a4",
+            "drawFill": true,
+            "id": 11,
+            "members": [
+            ],
+            "name": "box",
+            "type": "class",
+            "useAs": [
+                "property",
+                "map",
+                "layer",
+                "object",
+                "tile",
+                "tileset",
+                "wangcolor",
+                "wangset",
+                "project"
+            ]
+        },
+        {
+            "color": "#ff00ffc0",
+            "drawFill": true,
+            "id": 8,
+            "members": [
+                {
+                    "name": "modeBlock",
+                    "propertyType": "modeBlock",
+                    "type": "class",
+                    "value": {
+                        "collision_blueBlindness": false,
+                        "collision_colorBlindness": true,
+                        "collision_developer": false,
+                        "collision_redBlindness": true,
+                        "render_blueBlindness": "cyan",
+                        "render_colorBlindness": "cyanMuted",
+                        "render_redBlindness": "cyan_redBlind"
+                    }
+                }
+            ],
+            "name": "cyanBlock",
+            "type": "class",
+            "useAs": [
+                "property",
+                "object",
+                "project"
+            ]
+        },
+        {
+            "color": "#ffa0a0a4",
+            "drawFill": true,
+            "id": 17,
+            "members": [
+                {
+                    "name": "Picked",
+                    "type": "bool",
+                    "value": false
+                }
+            ],
+            "name": "item",
+            "type": "class",
+            "useAs": [
+                "property",
+                "map",
+                "layer",
+                "object",
+                "tile",
+                "tileset",
+                "wangcolor",
+                "wangset",
+                "project"
+            ]
+        },
+        {
+            "color": "#ffa0a0a4",
+            "drawFill": true,
+            "id": 18,
+            "members": [
+                {
+                    "name": "blueAbilityunlock",
+                    "type": "bool",
+                    "value": false
+                },
+                {
+                    "name": "item",
+                    "propertyType": "item",
+                    "type": "class",
+                    "value": {
+                    }
+                },
+                {
+                    "name": "redAbilityunlock",
+                    "type": "bool",
+                    "value": false
+                }
+            ],
+            "name": "key",
+            "type": "class",
+            "useAs": [
+                "property",
+                "map",
+                "layer",
+                "object",
+                "tile",
+                "tileset",
+                "wangcolor",
+                "wangset",
+                "project"
+            ]
+        },
+        {
+            "color": "#ffa0a0a4",
+            "drawFill": true,
+            "id": 13,
+            "members": [
+                {
+                    "name": "climbable",
+                    "type": "bool",
+                    "value": false
+                },
+                {
+                    "name": "topPlatformHeight",
+                    "type": "string",
+                    "value": "16"
+                }
+            ],
+            "name": "ladder",
+            "type": "class",
+            "useAs": [
+                "property",
+                "object",
+                "tile",
+                "wangset",
+                "project"
+            ]
+        },
+        {
+            "color": "#ffa0a0a4",
+            "drawFill": true,
+            "id": 14,
+            "members": [
+                {
+                    "name": "collision_blueBlindness",
+                    "type": "bool",
+                    "value": false
+                },
+                {
+                    "name": "collision_colorBlindness",
+                    "type": "bool",
+                    "value": false
+                },
+                {
+                    "name": "collision_redBlindness",
+                    "type": "bool",
+                    "value": false
+                },
+                {
+                    "name": "render_blueBlindness",
+                    "type": "string",
+                    "value": ""
+                },
+                {
+                    "name": "render_colorBlindness",
+                    "type": "string",
+                    "value": ""
+                },
+                {
+                    "name": "render_redBlindness",
+                    "type": "string",
+                    "value": ""
+                }
+            ],
+            "name": "modeBlock",
+            "type": "class",
+            "useAs": [
+                "property",
+                "map",
+                "layer",
+                "object",
+                "tile",
+                "tileset",
+                "wangcolor",
+                "wangset",
+                "project"
+            ]
+        },
+        {
+            "color": "#ffff0000",
+            "drawFill": true,
+            "id": 9,
+            "members": [
+            ],
+            "name": "permanentHazardBlock",
+            "type": "class",
+            "useAs": [
+                "property",
+                "object",
+                "project"
+            ]
+        },
+        {
+            "color": "#ffa0a0a4",
+            "drawFill": true,
+            "id": 20,
+            "members": [
+                {
+                    "name": "spawnSet",
+                    "type": "string",
+                    "value": ""
+                },
+                {
+                    "name": "target",
+                    "type": "string",
+                    "value": ""
+                }
+            ],
+            "name": "portal",
+            "type": "class",
+            "useAs": [
+                "property",
+                "map",
+                "layer",
+                "object",
+                "tile",
+                "tileset",
+                "wangcolor",
+                "wangset",
+                "project"
+            ]
+        },
+        {
+            "color": "#ffa0a0a4",
+            "drawFill": true,
+            "id": 19,
+            "members": [
+                {
+                    "name": "active",
+                    "type": "bool",
+                    "value": false
+                }
+            ],
+            "name": "spawn",
+            "type": "class",
+            "useAs": [
+                "property",
+                "map",
+                "layer",
+                "object",
+                "tile",
+                "tileset",
+                "wangcolor",
+                "wangset",
+                "project"
+            ]
+        },
+        {
+            "color": "#ffeeff0d",
+            "drawFill": true,
+            "id": 7,
+            "members": [
+                {
+                    "name": "modeBlock",
+                    "propertyType": "modeBlock",
+                    "type": "class",
+                    "value": {
+                        "collision_blueBlindness": true,
+                        "collision_colorBlindness": true,
+                        "collision_redBlindness": false,
+                        "render_blueBlindness": "yellow_blueBlind",
+                        "render_colorBlindness": "yellowMuted",
+                        "render_redBlindness": "yellow"
+                    }
+                }
+            ],
+            "name": "yellowBlock",
+            "type": "class",
+            "useAs": [
+                "property",
+                "object",
+                "project"
+            ]
+        }
+    ]
+}

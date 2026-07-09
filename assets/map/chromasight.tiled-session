@@ -1,0 +1,65 @@
+{
+    "activeFile": "level_1.tmj",
+    "expandedProjectPaths": [
+        "."
+    ],
+    "file.lastUsedOpenFilter": "全部文件 (*)",
+    "fileStates": {
+        "level_1.tmj": {
+            "scale": 0.6818700396825397,
+            "selectedLayer": 0,
+            "viewCenter": {
+                "x": 1007.5233695849853,
+                "y": 336.5744007565562
+            }
+        },
+        "level_1.tmx": {
+            "expandedObjectLayers": [
+                2,
+                11
+            ],
+            "scale": 1,
+            "selectedLayer": 0,
+            "viewCenter": {
+                "x": 1008,
+                "y": 336.5
+            }
+        },
+        "robotFighter.tsx": {
+            "dynamicWrapping": false,
+            "scaleInDock": 1,
+            "scaleInEditor": 4
+        },
+        "tiles_packed.tsx": {
+            "scaleInDock": 1.5,
+            "scaleInEditor": 1
+        }
+    },
+    "last.exportedFilePath": "C:/Users/lenovo/Documents/GBDA302/color-blindness-platformer/assets/map",
+    "last.externalTilesetPath": "C:/Users/lenovo/Documents/GBDA302/color-blindness-platformer/assets/map",
+    "last.imagePath": "C:/Users/lenovo/Documents/GBDA302/color-blindness-platformer/assets",
+    "last.objectTypesPath": "C:/Users/lenovo/Documents/GBDA302/color-blindness-platformer/assets/map/123.json",
+    "map.height": 21,
+    "map.lastUsedExportFilter": "JSON map files (*.tmj *.json)",
+    "map.lastUsedFormat": "tmx",
+    "map.width": 63,
+    "openFiles": [
+        "level_1.tmx",
+        "tiles_packed.tsx",
+        "level_1.tmj"
+    ],
+    "project": "未命名.tiled-project",
+    "property.type": "string",
+    "recentFiles": [
+        "level_1.tmx",
+        "tiles_packed.tsx",
+        "level_1.tmj",
+        "robotFighter.tsx"
+    ],
+    "tileset.lastUsedFilter": "Tiled 图块集文件 (*.tsx *.xml)",
+    "tileset.lastUsedFormat": "tsx",
+    "tileset.tileSize": {
+        "height": 64,
+        "width": 64
+    }
+}
