@@ -86,6 +86,26 @@
             ]
         },
         {
+            "color": "#ffff0000",
+            "drawFill": true,
+            "id": 22,
+            "members": [
+            ],
+            "name": "HazardBlock",
+            "type": "class",
+            "useAs": [
+                "property",
+                "map",
+                "layer",
+                "object",
+                "tile",
+                "tileset",
+                "wangcolor",
+                "wangset",
+                "project"
+            ]
+        },
+        {
             "color": "#ffa0a0a4",
             "drawFill": true,
             "id": 17,
