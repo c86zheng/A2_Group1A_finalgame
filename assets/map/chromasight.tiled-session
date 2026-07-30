@@ -13,8 +13,8 @@
             "scale": 1.5,
             "selectedLayer": 3,
             "viewCenter": {
-                "x": 1297,
-                "y": 77
+                "x": 1009,
+                "y": 336
             }
         },
         "level_1.tmx": {
@@ -31,15 +31,15 @@
         },
         "level_2.tmj": {
             "expandedObjectLayers": [
-                2,
                 3,
+                2,
                 6
             ],
             "scale": 2,
             "selectedLayer": 2,
             "viewCenter": {
-                "x": 1526.25,
-                "y": 514.25
+                "x": 992.25,
+                "y": 480
             }
         },
         "level_3.tmj": {

@@ -2,10 +2,11 @@ const input = {
   left: false,
   right: false,
   up: false,
-  down: false
+  down: false,
+  interact: false
 };
 
-let rawMap;
+let levelMaps = {};
 let startMap;
 let tilesetTsx;
 let playerTsx;
@@ -18,7 +19,9 @@ let game;
 
 function preload() {
   startMap = loadJSON(GAME_CONFIG.startMapPath);
-  rawMap = loadJSON(GAME_CONFIG.mapPath);
+  for (const [levelName, mapPath] of Object.entries(GAME_CONFIG.levelRegistry)) {
+    levelMaps[levelName] = loadJSON(mapPath);
+  }
   tilesetTsx = loadStrings(GAME_CONFIG.tilesetTsxPath);
   playerTsx = loadStrings(GAME_CONFIG.playerTsxPath);
   tilesetImage = loadImage(GAME_CONFIG.tilesetImagePath);
@@ -35,7 +38,8 @@ function setup() {
 
   game = new ChromasightGame({
     startMap,
-    map: rawMap,
+    map: levelMaps.level_1,
+    maps: levelMaps,
     tilesetMeta: parseTileset(tilesetTsx.join("\n")),
     playerMeta: parseTileset(playerTsx.join("\n")),
     tilesetImage,
@@ -63,14 +67,16 @@ function keyPressed() {
   if (key === "a" || key === "A" || keyCode === LEFT_ARROW) input.left = true;
   if (key === "d" || key === "D" || keyCode === RIGHT_ARROW) input.right = true;
   if (key === "s" || key === "S" || keyCode === DOWN_ARROW) input.down = true;
+  if (keyCode === SHIFT) input.interact = true;
 
   if (key === "w" || key === "W" || keyCode === UP_ARROW) {
     input.up = true;
-    if (game.getActivePortal()) {
-      game.usePortal();
-    } else {
-      game.tryJump();
-    }
+    game.tryJump();
+    return false;
+  }
+
+  if (key === "f" || key === "F") {
+    if (game.getActivePortal()) game.usePortal();
     return false;
   }
 
@@ -84,9 +90,14 @@ function keyPressed() {
     return false;
   }
 
-  if (key === "r" || key === "R") {
-    game.respawn("Respawned.");
-    game.mode = GAME_CONFIG.initialMode;
+  if (key === "c" || key === "C") {
+    game.toggleCollisionDebug();
+    return false;
+  }
+
+  if (game.showCollisionDebug && ["1", "2", "3"].includes(key)) {
+    game.loadLevel(`level_${key}`, "Respawn_Point_01");
+    game.setMessage(`Debug jump: level ${key}`);
     return false;
   }
 }
@@ -108,4 +119,5 @@ function keyReleased() {
   if (key === "d" || key === "D" || keyCode === RIGHT_ARROW) input.right = false;
   if (key === "w" || key === "W" || keyCode === UP_ARROW) input.up = false;
   if (key === "s" || key === "S" || keyCode === DOWN_ARROW) input.down = false;
+  if (keyCode === SHIFT) input.interact = false;
 }

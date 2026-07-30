@@ -15,24 +15,28 @@ const GAME_CONFIG = {
   buttonSoundVolume: 1,
   playerIdleTileIds: [0, 1, 2, 3, 4, 5],
   playerWalkingTileIds: [54, 55, 56, 57],
-  playerScale: 2,
-  playerSourceCropBottom: 14,
-  playerCollisionBox: { x: 14, y: 11, w: 30, h: 39 },
+  playerScale: 1,
+  playerSpriteBox: { x: 14, y: 14, w: 30, h: 36 },
+  playerCollisionBox: { x: 0, y: 0, w: 54, h: 64 },
   gravity: 0.55,
   maxFallSpeed: 13,
-  maxJumpHeight: 80,
+  maxJumpHeight: 96,
   maxJumpDistance: 96,
   modeSwitchOverlapLimit: 5,
+  boxPushPullSpeed: 2.4,
   keyTileGid: 296,
   bookTileGid: 317,
+  boxTileGid: 221,
+  hazardTileGid: 248,
   levelRegistry: {
     level_1: "assets/map/level_1.tmj",
-    level_2: "assets/map/level_1.tmj"
+    level_2: "assets/map/level_2.tmj",
+    level_3: "assets/map/level_3.tmj"
   },
   renderTileMap: {
     yellow: 307,
     yellowMuted: 306,
-    yellow_blueBlind: 309,
+    yellow_blueBlind: 308,
     cyan: 329,
     cyanMuted: 328,
     cyan_redBlind: 330
@@ -40,7 +44,7 @@ const GAME_CONFIG = {
   modeBackgroundMap: {
     colorBlindness: "#969696",
     redBlindness: "#EEFF0D",
-    blueBlindness: "#00FFC0"
+    blueBlindness: "#00FFEE"
   }
 };
 
@@ -64,6 +68,7 @@ class ChromasightGame {
     this.message = "";
     this.messageTimer = 0;
     this.lastPortal = null;
+    this.currentRespawnName = "";
     this.player = {
       x: 0,
       y: 0,
@@ -105,29 +110,57 @@ class ChromasightGame {
     this.mapHeight = Number(map.height || 0) * this.tileHeight;
     this.firstGid = map.tilesets && map.tilesets[0] ? Number(map.tilesets[0].firstgid || 1) : 1;
     this.layers = layerMap(map.layers || []);
-    this.terrain = tilesFromLayer(this.layers.terrain_solid, this.tileWidth, this.tileHeight);
-    this.decor = tilesFromLayer(this.layers.decor, this.tileWidth, this.tileHeight);
-    this.modeBlocks = objectRects(this.layers.mode_blocks).map((object) => ({
-      ...object,
-      modeBlock: object.props.modeBlock || object.props
-    }));
-    this.objects = objectRects(this.layers.objects);
+    this.terrain = tilesFromNamedTileLayers(map.layers || [], "terrain_solid", this.tileWidth, this.tileHeight);
+    this.decor = tilesFromNamedTileLayers(map.layers || [], "decor", this.tileWidth, this.tileHeight);
+    this.modeBlocks = objectRectsFromLayers(map.layers || [])
+      .filter((object) => object.type === "yellowBlock" || object.type === "cyanBlock")
+      .map((object) => ({
+        ...object,
+        modeBlock: object.props.modeBlock || defaultModeBlockFor(object.type)
+      }));
+    this.objects = objectRectsFromLayers(map.layers || [])
+      .filter((object) => object.type !== "yellowBlock" && object.type !== "cyanBlock");
+    this.worldObjects = objectRectsFromNamedLayers(map.layers || [], ["object", "objects"])
+      .filter((object) => object.type !== "yellowBlock" && object.type !== "cyanBlock" && object.type !== "box" && object.type !== "HazardBlock");
+    this.spikeObjects = this.objects.filter((object) => object.type === "HazardBlock");
+    this.boxes = this.objects
+      .filter((object) => object.type === "box")
+      .map((box) => ({
+        ...box,
+        startX: box.x,
+        startY: box.y,
+        vy: 0,
+        grounded: false
+      }));
     this.spawns = this.objects.filter((object) => object.type === "spawn");
     this.portals = this.objects.filter((object) => object.type === "portal");
     this.ladders = this.objects.filter((object) => object.type === "ladder");
+    this.hazards = this.objects.filter((object) => object.type === "HazardBlock");
     this.items = this.objects
       .filter((object) => object.type === "key" || object.type === "book" || object.type === "item")
       .map((object) => ({
         ...object,
         collected: Boolean(object.props.collected || object.props.Picked || object.props.item?.Picked)
       }));
-    this.textBoxes = this.objects.filter((object) => object.type === "textBox");
+    this.textBoxes = this.objects.filter((object) => object.type === "textBox" || object.type === "textbox");
     this.textTriggers = this.textBoxes.filter((object) => !object.text);
     this.textDisplays = this.textBoxes.filter((object) => object.text);
 
     const spawn = this.findSpawn(spawnName);
     this.setRespawn(spawn);
     this.respawn();
+  }
+
+  loadLevel(levelName, spawnName = null) {
+    const map = this.assets.maps?.[levelName];
+    if (!map) {
+      this.setMessage(`Missing map: ${levelName}`);
+      return false;
+    }
+
+    this.currentLevelName = levelName;
+    this.loadMap(map, spawnName);
+    return true;
   }
 
   findSpawn(name) {
@@ -140,6 +173,7 @@ class ChromasightGame {
   }
 
   setRespawn(spawn) {
+    this.currentRespawnName = spawn.name || "";
     this.respawnPoint = {
       x: spawn.x,
       y: spawn.y + (spawn.h || this.player.h) - this.player.h
@@ -162,15 +196,64 @@ class ChromasightGame {
     if (this.scene !== "level") return;
 
     if (this.messageTimer > 0) this.messageTimer -= 1;
+    this.updateBoxes();
     this.updatePlayer(keys);
+    this.updateRespawnTriggers();
+    this.updateHazards();
     this.collectItems();
     this.updateCamera();
     if (this.player.y > this.mapHeight + 160) this.respawn("Returned to respawn point.");
   }
 
+  updateRespawnTriggers() {
+    for (const spawn of this.spawns) {
+      if (spawn.name === this.currentRespawnName) continue;
+      if (!rectsOverlap(this.player, spawn)) continue;
+
+      this.setRespawn(spawn);
+      break;
+    }
+  }
+
+  updateHazards() {
+    for (const hazard of this.hazards) {
+      if (!rectsOverlap(this.player, hazard)) continue;
+
+      this.respawn("Respawned.");
+      break;
+    }
+  }
+
+  updateBoxes() {
+    for (const box of this.boxes) {
+      box.vy = Math.min((box.vy || 0) + GAME_CONFIG.gravity, GAME_CONFIG.maxFallSpeed);
+      box.y += box.vy;
+      box.grounded = false;
+
+      for (const rect of this.getBoxSolidRects(box)) {
+        if (!rectsOverlap(box, rect)) continue;
+
+        if (box.vy > 0) {
+          box.y = rect.y - box.h;
+          box.grounded = true;
+        } else if (box.vy < 0) {
+          box.y = rect.y + rect.h;
+        }
+        box.vy = 0;
+      }
+
+      if (box.y > this.mapHeight + 160) {
+        box.x = box.startX;
+        box.y = box.startY;
+        box.vy = 0;
+        box.grounded = false;
+      }
+    }
+  }
+
   updatePlayer(keys) {
     const p = this.player;
-    const ladder = this.getActiveLadder();
+    const ladder = this.getActiveLadder(keys);
     const move = (keys.left ? -1 : 0) + (keys.right ? 1 : 0);
 
     p.vx = move * p.speed;
@@ -189,6 +272,7 @@ class ChromasightGame {
 
     p.x += p.vx;
     p.x = clamp(p.x, 0, Math.max(0, this.mapWidth - p.w));
+    this.resolveBoxInteraction(keys);
     this.resolveCollisions("x");
 
     p.y += p.vy;
@@ -226,10 +310,72 @@ class ChromasightGame {
     }
   }
 
+  resolveBoxInteraction(keys) {
+    if (!keys.interact || Math.abs(this.player.vx) <= 0) return;
+
+    const direction = Math.sign(this.player.vx);
+    for (const box of this.boxes) {
+      if (!verticalOverlapEnough(this.player, box)) continue;
+
+      const overlapsBox = rectsOverlap(this.player, box);
+      const boxOnPlayerRight = box.x >= this.player.x + this.player.w;
+      const boxOnPlayerLeft = box.x + box.w <= this.player.x;
+      const rightGap = box.x - (this.player.x + this.player.w);
+      const leftGap = this.player.x - (box.x + box.w);
+      const pushing = overlapsBox && ((direction > 0 && this.player.x < box.x) || (direction < 0 && this.player.x > box.x));
+      const pulling = !overlapsBox && ((direction < 0 && boxOnPlayerRight && rightGap <= 10) || (direction > 0 && boxOnPlayerLeft && leftGap <= 10));
+
+      if (!pushing && !pulling) continue;
+      if (!this.moveBox(box, direction * GAME_CONFIG.boxPushPullSpeed)) continue;
+
+      if (box.x >= this.player.x + this.player.w || direction > 0 && pushing) {
+        this.player.x = box.x - this.player.w;
+      } else {
+        this.player.x = box.x + box.w;
+      }
+      return;
+    }
+  }
+
+  moveBox(box, dx) {
+    const originalBoxX = box.x;
+    box.x += dx;
+    if (this.boxBlocked(box)) {
+      box.x = originalBoxX;
+      return false;
+    }
+    return true;
+  }
+
+  boxBlocked(box) {
+    if (box.x < 0 || box.x + box.w > this.mapWidth) return true;
+    return this.getBoxSolidRects(box).some((rect) => rectsOverlap(box, rect));
+  }
+
+  getBoxSolidRects(currentBox) {
+    const terrainRects = this.terrain.map((tile) => ({
+      x: tile.x,
+      y: tile.y,
+      w: this.tileWidth,
+      h: this.tileHeight
+    }));
+
+    const activeModeRects = this.modeBlocks
+      .filter((block) => this.modeCollision(block))
+      .map((block) => ({ x: block.x, y: block.y, w: block.w, h: block.h }));
+
+    const otherBoxRects = this.boxes
+      .filter((box) => box !== currentBox)
+      .map((box) => ({ x: box.x, y: box.y, w: box.w, h: box.h }));
+
+    return terrainRects.concat(activeModeRects, otherBoxRects);
+  }
+
   resolveLadderTop(ladder) {
     if (!ladder) return;
 
     const height = Number(ladder.props.topPlatformHeight);
+    if (!isLadderClimbable(ladder)) return;
     if (!Number.isFinite(height) || height <= 0) return;
 
     const platform = { x: ladder.x, y: ladder.y, w: ladder.w, h: height };
@@ -242,7 +388,8 @@ class ChromasightGame {
     }
   }
 
-  getSolidRects() {
+  getSolidRects(options = {}) {
+    const includeBoxes = options.includeBoxes !== false;
     const terrainRects = this.terrain.map((tile) => ({
       x: tile.x,
       y: tile.y,
@@ -257,6 +404,7 @@ class ChromasightGame {
     const ladderTopRects = this.player.climbing
       ? []
       : this.ladders
+          .filter((ladder) => isLadderClimbable(ladder))
           .map((ladder) => ({
             x: ladder.x,
             y: ladder.y,
@@ -265,7 +413,11 @@ class ChromasightGame {
           }))
           .filter((rect) => Number.isFinite(rect.h) && rect.h > 0);
 
-    return terrainRects.concat(activeModeRects, ladderTopRects);
+    const boxRects = includeBoxes
+      ? this.boxes.map((box) => ({ x: box.x, y: box.y, w: box.w, h: box.h }))
+      : [];
+
+    return terrainRects.concat(activeModeRects, ladderTopRects, boxRects);
   }
 
   modeCollision(block) {
@@ -278,11 +430,27 @@ class ChromasightGame {
 
   toggleCollisionDebug() {
     this.showCollisionDebug = !this.showCollisionDebug;
-    this.setMessage(`Collision boxes: ${this.showCollisionDebug ? "on" : "off"}`);
+    this.setMessage(`Debug mode: ${this.showCollisionDebug ? "on" : "off"}`);
   }
 
-  getActiveLadder() {
-    return this.ladders.find((ladder) => rectsOverlap(this.player, ladder)) || null;
+  getActiveLadder(keys = {}) {
+    const overlappingLadder = this.ladders.find((ladder) => isLadderClimbable(ladder) && rectsOverlap(this.player, ladder));
+    if (overlappingLadder) return overlappingLadder;
+
+    if (!keys.down) return null;
+
+    const entryProbe = {
+      x: this.player.x,
+      y: this.player.y + this.player.h,
+      w: this.player.w,
+      h: 18
+    };
+
+    return this.ladders.find((ladder) => {
+      const playerCenterX = this.player.x + this.player.w / 2;
+      const centerIsOnLadder = playerCenterX >= ladder.x && playerCenterX <= ladder.x + ladder.w;
+      return isLadderClimbable(ladder) && centerIsOnLadder && rectsOverlap(entryProbe, ladder);
+    }) || null;
   }
 
   getActivePortal() {
@@ -294,13 +462,11 @@ class ChromasightGame {
     if (!portal || portal === this.lastPortal) return;
 
     const target = portal.props.target || this.currentLevelName;
-    const spawnSet = portal.props.spawnSet || null;
-    const targetPath = GAME_CONFIG.levelRegistry[target];
+    const spawnSet = portal.props.spawnSet || "Respawn_Point_01";
     this.lastPortal = portal;
 
-    if (targetPath && targetPath === GAME_CONFIG.mapPath) {
-      this.currentLevelName = target;
-      this.loadMap(this.assets.map, spawnSet);
+    if (this.assets.maps?.[target]) {
+      this.loadLevel(target, spawnSet);
       this.setMessage(`Portal target: ${target}`);
       return;
     }
@@ -388,7 +554,7 @@ class ChromasightGame {
     if (!clickedStart) return false;
 
     if (typeof playBgm === "function") playBgm();
-    this.loadMap(this.assets.map);
+    this.loadLevel("level_1");
     return true;
   }
 }
@@ -435,6 +601,12 @@ function tilesFromVisibleTileLayers(layers, tileWidth, tileHeight) {
     .flatMap((layer) => tilesFromLayer(layer, tileWidth, tileHeight));
 }
 
+function tilesFromNamedTileLayers(layers, name, tileWidth, tileHeight) {
+  return layers
+    .filter((layer) => layer.type === "tilelayer" && layer.name === name && layer.visible !== false)
+    .flatMap((layer) => tilesFromLayer(layer, tileWidth, tileHeight));
+}
+
 function imageLayersFromMap(layers) {
   return layers
     .filter((layer) => layer.type === "imagelayer" && layer.visible !== false && layer.image)
@@ -453,6 +625,13 @@ function objectRectsFromLayers(layers) {
     .flatMap((layer) => objectRects(layer));
 }
 
+function objectRectsFromNamedLayers(layers, names) {
+  const nameSet = new Set(names);
+  return layers
+    .filter((layer) => layer.type === "objectgroup" && nameSet.has(layer.name) && layer.visible !== false)
+    .flatMap((layer) => objectRects(layer));
+}
+
 function objectRects(layer) {
   if (!layer || !Array.isArray(layer.objects)) return [];
   return layer.objects.map((object) => ({
@@ -468,6 +647,32 @@ function objectRects(layer) {
   }));
 }
 
+function defaultModeBlockFor(type) {
+  if (type === "yellowBlock") {
+    return {
+      collision_blueBlindness: true,
+      collision_colorBlindness: true,
+      collision_redBlindness: false,
+      render_blueBlindness: "yellow_blueBlind",
+      render_colorBlindness: "yellowMuted",
+      render_redBlindness: "yellow"
+    };
+  }
+
+  if (type === "cyanBlock") {
+    return {
+      collision_blueBlindness: false,
+      collision_colorBlindness: true,
+      collision_redBlindness: true,
+      render_blueBlindness: "cyan",
+      render_colorBlindness: "cyanMuted",
+      render_redBlindness: "cyan_redBlind"
+    };
+  }
+
+  return {};
+}
+
 function parseProperties(properties) {
   const result = {};
   for (const prop of properties) {
@@ -478,6 +683,15 @@ function parseProperties(properties) {
 
 function rectsOverlap(a, b) {
   return a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y;
+}
+
+function verticalOverlapEnough(a, b) {
+  const overlap = Math.min(a.y + a.h, b.y + b.h) - Math.max(a.y, b.y);
+  return overlap > Math.min(a.h, b.h) * 0.35;
+}
+
+function isLadderClimbable(ladder) {
+  return true;
 }
 
 function pointInRect(x, y, rect) {

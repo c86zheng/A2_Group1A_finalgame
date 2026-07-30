@@ -22,13 +22,62 @@ ChromasightGame.prototype.drawStartScreen = function () {
 ChromasightGame.prototype.drawWorld = function () {
   push();
   translate(-Math.floor(this.cameraX), -Math.floor(this.cameraY));
-  this.drawTileLayer(this.terrain);
-  this.drawModeBlocks();
   this.drawTileLayer(this.decor);
+  this.drawModeBlocks();
+  this.drawTileLayer(this.terrain);
+  this.drawWorldObjects(this.worldObjects);
+  this.drawBoxes();
   this.drawItems();
   this.drawTextBoxes();
+  this.drawWorldObjects(this.spikeObjects);
   this.drawPlayer();
   if (this.showCollisionDebug) this.drawCollisionDebug();
+  pop();
+};
+
+ChromasightGame.prototype.drawBoxes = function () {
+  for (const box of this.boxes) {
+    this.drawBoxObject(box);
+  }
+};
+
+ChromasightGame.prototype.drawWorldObjects = function (objects = this.objects) {
+  for (const object of objects) {
+    if (object.type === "box") {
+      this.drawBoxObject(object);
+      continue;
+    }
+
+    if (object.type === "HazardBlock") {
+      this.drawHazardObject(object);
+      continue;
+    }
+
+    if (object.type === "portal") {
+      this.drawPortalObject(object);
+    }
+  }
+};
+
+ChromasightGame.prototype.drawBoxObject = function (box) {
+  drawTileGid(GAME_CONFIG.boxTileGid, box.x, box.y, box.w, box.h, this.assets.tilesetImage, this.assets.tilesetMeta, this.firstGid);
+};
+
+ChromasightGame.prototype.drawHazardObject = function (hazard) {
+  for (let y = hazard.y; y < hazard.y + hazard.h; y += this.tileHeight) {
+    for (let x = hazard.x; x < hazard.x + hazard.w; x += this.tileWidth) {
+      const tileW = Math.min(this.tileWidth, hazard.x + hazard.w - x);
+      const tileH = Math.min(this.tileHeight, hazard.y + hazard.h - y);
+      drawTileGid(GAME_CONFIG.hazardTileGid, x, y, tileW, tileH, this.assets.tilesetImage, this.assets.tilesetMeta, this.firstGid);
+    }
+  }
+};
+
+ChromasightGame.prototype.drawPortalObject = function (portal) {
+  push();
+  fill(255);
+  noStroke();
+  rect(portal.x, portal.y, portal.w, portal.h);
   pop();
 };
 
@@ -107,16 +156,17 @@ ChromasightGame.prototype.drawTextBox = function (textBox) {
 ChromasightGame.prototype.drawPlayer = function () {
   const p = this.player;
   const frame = playerFrameFor(p, this.assets.playerMeta);
-  const cropBottom = GAME_CONFIG.playerSourceCropBottom;
-  const collisionBox = GAME_CONFIG.playerCollisionBox;
-  const sourceHeight = frame.sh - cropBottom;
-  const drawWidth = frame.sw * GAME_CONFIG.playerScale;
-  const drawHeight = sourceHeight * GAME_CONFIG.playerScale;
-  const collisionOffsetX = p.facing < 0
-    ? frame.sw - collisionBox.x - collisionBox.w
-    : collisionBox.x;
-  const drawX = p.x - collisionOffsetX * GAME_CONFIG.playerScale;
-  const drawY = p.y - collisionBox.y * GAME_CONFIG.playerScale;
+  const spriteBox = GAME_CONFIG.playerSpriteBox;
+  const drawScale = p.h / spriteBox.h;
+  const drawWidth = frame.sw * drawScale;
+  const drawHeight = frame.sh * drawScale;
+  const spriteCenterX = (spriteBox.x + spriteBox.w / 2) * drawScale;
+  const spriteBottomY = (spriteBox.y + spriteBox.h) * drawScale;
+  const playerCenterX = p.x + p.w / 2;
+  const drawX = p.facing < 0
+    ? playerCenterX - drawWidth + spriteCenterX
+    : playerCenterX - spriteCenterX;
+  const drawY = p.y + p.h - spriteBottomY;
 
   push();
   translate(drawX + drawWidth / 2, drawY);
@@ -131,7 +181,7 @@ ChromasightGame.prototype.drawPlayer = function () {
     frame.sx,
     frame.sy,
     frame.sw,
-    sourceHeight
+    frame.sh
   );
   pop();
 };
@@ -202,7 +252,7 @@ ChromasightGame.prototype.drawUi = function () {
     rect(width - 220, height - 54, 204, 38, 6);
     fill(255);
     textAlign(LEFT, TOP);
-    text("Press W to enter portal", width - 204, height - 44);
+    text("Press F to enter portal", width - 204, height - 44);
   }
 };
 
