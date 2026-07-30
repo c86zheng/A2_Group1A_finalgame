@@ -1,45 +1,191 @@
-const GAME_CONFIG = {
-  canvasWidth: 960,
-  canvasHeight: 540,
-  initialMode: "colorBlindness",
-  startMapPath: "assets/map/Start.tmj",
-  mapPath: "assets/map/level_1.tmj",
-  tilesetTsxPath: "assets/map/tiles_packed.tsx",
-  playerTsxPath: "assets/map/robotFighter.tsx",
-  tilesetImagePath: "assets/img/tiles_packed.png",
-  playerImagePath: "assets/img/robotFighter.png",
-  startImagePath: "assets/img/Start.png",
-  bgmPath: "assets/sound/bgm.wav",
-  bgmVolume: 0.5,
-  buttonSoundPath: "assets/sound/buttonon.mp3",
-  buttonSoundVolume: 1,
-  playerIdleTileIds: [0, 1, 2, 3, 4, 5],
-  playerWalkingTileIds: [54, 55, 56, 57],
-  playerScale: 1,
-  playerSpriteBox: { x: 14, y: 14, w: 30, h: 36 },
-  playerCollisionBox: { x: 0, y: 0, w: 54, h: 64 },
+/** @constant {number} Fixed width of the p5 canvas. */
+const CANVAS_WIDTH = 960;
+
+/** @constant {number} Fixed height of the p5 canvas. */
+const CANVAS_HEIGHT = 540;
+
+/** @constant {string} Default respawn object name used when entering a level. */
+const DEFAULT_SPAWN_NAME = "Respawn_Point_01";
+
+/** @constant {string} Gameplay mode used before the player unlocks other modes. */
+const INITIAL_MODE = "colorBlindness";
+
+/**
+ * Centralized asset paths. Keep file paths here so preload and render logic do
+ * not hardcode asset names inside functions.
+ */
+const AssetPaths = Object.freeze({
+  startMap: "assets/map/Start.tmj",
+  levels: Object.freeze({
+    level_1: "assets/map/level_1.tmj",
+    level_2: "assets/map/level_2.tmj",
+    level_3: "assets/map/level_3.tmj"
+  }),
+  tilesetTsx: "assets/map/tiles_packed.tsx",
+  playerTsx: "assets/map/robotFighter.tsx",
+  tilesetImage: "assets/img/tiles_packed.png",
+  playerImage: "assets/img/robotFighter.png",
+  startImage: "assets/img/Start.png",
+  tiledStartImageLayer: "../img/Start.png",
+  bgm: "assets/sound/bgm.wav",
+  buttonSound: "assets/sound/buttonon.mp3"
+});
+
+/** Tile layer names exported from Tiled. */
+const MapLayers = Object.freeze({
+  terrain: "terrain_solid",
+  decor: "decor",
+  objectLayers: Object.freeze(["object", "objects"])
+});
+
+/** Object type names exported from Tiled. */
+const ObjectTypes = Object.freeze({
+  yellowBlock: "yellowBlock",
+  cyanBlock: "cyanBlock",
+  box: "box",
+  hazardBlock: "HazardBlock",
+  spawn: "spawn",
+  portal: "portal",
+  ladder: "ladder",
+  key: "key",
+  book: "book",
+  item: "item",
+  textBox: "textBox",
+  textbox: "textbox"
+});
+
+/** Base tile grid used by the map tileset. */
+const TileGrid = Object.freeze({
+  tileWidth: 32,
+  tileHeight: 32
+});
+
+/** Sprite-grid data for the robot sheet. */
+const PlayerGrid = Object.freeze({
+  tileWidth: 64,
+  tileHeight: 64,
+  columns: 6,
+  scale: 1,
+  spriteBox: Object.freeze({ x: 14, y: 14, w: 30, h: 36 }),
+  collisionBox: Object.freeze({ x: 0, y: 0, w: 54, h: 64 }),
+  idleTileIds: Object.freeze([0, 1, 2, 3, 4, 5]),
+  walkingTileIds: Object.freeze([54, 55, 56, 57])
+});
+
+/** Tile gids used for objects that are drawn from object layers. */
+const TileGids = Object.freeze({
+  key: 296,
+  book: 317,
+  box: 221,
+  hazard: 248,
+  modeBlocks: Object.freeze({
+    yellow: 307,
+    yellowMuted: 306,
+    yellowBlueBlind: 308,
+    cyan: 329,
+    cyanMuted: 328,
+    cyanRedBlind: 330
+  })
+});
+
+/** Grid metadata for drawing pushable boxes from the shared tileset. */
+const BoxGrid = Object.freeze({
+  tileGid: TileGids.box,
+  sourceTileWidth: TileGrid.tileWidth,
+  sourceTileHeight: TileGrid.tileHeight,
+  defaultScale: 2
+});
+
+/** Grid metadata for drawing hazard blocks from the shared tileset. */
+const HazardGrid = Object.freeze({
+  tileGid: TileGids.hazard,
+  sourceTileWidth: TileGrid.tileWidth,
+  sourceTileHeight: TileGrid.tileHeight
+});
+
+/** Physics values tuned against the 32px tile grid. */
+const PhysicsConfig = Object.freeze({
   gravity: 0.55,
   maxFallSpeed: 13,
   maxJumpHeight: 96,
   maxJumpDistance: 96,
   modeSwitchOverlapLimit: 5,
-  boxPushPullSpeed: 2.4,
-  keyTileGid: 296,
-  bookTileGid: 317,
-  boxTileGid: 221,
-  hazardTileGid: 248,
-  levelRegistry: {
-    level_1: "assets/map/level_1.tmj",
-    level_2: "assets/map/level_2.tmj",
-    level_3: "assets/map/level_3.tmj"
-  },
+  boxPushPullSpeed: 2.4
+});
+
+/** Volume controls are separated so bgm and effects can be tuned independently. */
+const AudioConfig = Object.freeze({
+  bgmVolume: 0.5,
+  buttonSoundVolume: 1
+});
+
+/** Default behavior for mode blocks when the Tiled object does not override it. */
+const ModeBlockDefaults = Object.freeze({
+  [ObjectTypes.yellowBlock]: Object.freeze({
+    collision_blueBlindness: true,
+    collision_colorBlindness: true,
+    collision_redBlindness: false,
+    render_blueBlindness: "yellow_blueBlind",
+    render_colorBlindness: "yellowMuted",
+    render_redBlindness: "yellow"
+  }),
+  [ObjectTypes.cyanBlock]: Object.freeze({
+    collision_blueBlindness: false,
+    collision_colorBlindness: true,
+    collision_redBlindness: true,
+    render_blueBlindness: "cyan",
+    render_colorBlindness: "cyanMuted",
+    render_redBlindness: "cyan_redBlind"
+  })
+});
+
+/** Runtime configuration consumed by sketch.js and scene rendering. */
+const GAME_CONFIG = {
+  canvasWidth: CANVAS_WIDTH,
+  canvasHeight: CANVAS_HEIGHT,
+  initialMode: INITIAL_MODE,
+  defaultSpawnName: DEFAULT_SPAWN_NAME,
+  startMapPath: AssetPaths.startMap,
+  mapPath: AssetPaths.levels.level_1,
+  tilesetTsxPath: AssetPaths.tilesetTsx,
+  playerTsxPath: AssetPaths.playerTsx,
+  tilesetImagePath: AssetPaths.tilesetImage,
+  playerImagePath: AssetPaths.playerImage,
+  startImagePath: AssetPaths.startImage,
+  tiledStartImageLayerPath: AssetPaths.tiledStartImageLayer,
+  bgmPath: AssetPaths.bgm,
+  bgmVolume: AudioConfig.bgmVolume,
+  buttonSoundPath: AssetPaths.buttonSound,
+  buttonSoundVolume: AudioConfig.buttonSoundVolume,
+  playerIdleTileIds: [...PlayerGrid.idleTileIds],
+  playerWalkingTileIds: [...PlayerGrid.walkingTileIds],
+  playerScale: PlayerGrid.scale,
+  playerSpriteBox: { ...PlayerGrid.spriteBox },
+  playerCollisionBox: { ...PlayerGrid.collisionBox },
+  gravity: PhysicsConfig.gravity,
+  maxFallSpeed: PhysicsConfig.maxFallSpeed,
+  maxJumpHeight: PhysicsConfig.maxJumpHeight,
+  maxJumpDistance: PhysicsConfig.maxJumpDistance,
+  modeSwitchOverlapLimit: PhysicsConfig.modeSwitchOverlapLimit,
+  boxPushPullSpeed: PhysicsConfig.boxPushPullSpeed,
+  keyTileGid: TileGids.key,
+  bookTileGid: TileGids.book,
+  boxTileGid: TileGids.box,
+  hazardTileGid: TileGids.hazard,
+  boxGrid: BoxGrid,
+  hazardGrid: HazardGrid,
+  tileGrid: TileGrid,
+  playerGrid: PlayerGrid,
+  objectTypes: ObjectTypes,
+  mapLayers: MapLayers,
+  levelRegistry: AssetPaths.levels,
   renderTileMap: {
-    yellow: 307,
-    yellowMuted: 306,
-    yellow_blueBlind: 308,
-    cyan: 329,
-    cyanMuted: 328,
-    cyan_redBlind: 330
+    yellow: TileGids.modeBlocks.yellow,
+    yellowMuted: TileGids.modeBlocks.yellowMuted,
+    yellow_blueBlind: TileGids.modeBlocks.yellowBlueBlind,
+    cyan: TileGids.modeBlocks.cyan,
+    cyanMuted: TileGids.modeBlocks.cyanMuted,
+    cyan_redBlind: TileGids.modeBlocks.cyanRedBlind
   },
   modeBackgroundMap: {
     colorBlindness: "#969696",
@@ -87,8 +233,8 @@ class ChromasightGame {
   loadStartMap(map) {
     this.scene = "start";
     this.map = map;
-    this.tileWidth = Number(map.tilewidth || 32);
-    this.tileHeight = Number(map.tileheight || 32);
+    this.tileWidth = Number(map.tilewidth || TileGrid.tileWidth);
+    this.tileHeight = Number(map.tileheight || TileGrid.tileHeight);
     this.mapWidth = Number(map.width || 0) * this.tileWidth;
     this.mapHeight = Number(map.height || 0) * this.tileHeight;
     this.firstGid = map.tilesets && map.tilesets[0] ? Number(map.tilesets[0].firstgid || 1) : 1;
@@ -104,27 +250,32 @@ class ChromasightGame {
   loadMap(map, spawnName = null) {
     this.scene = "level";
     this.map = map;
-    this.tileWidth = Number(map.tilewidth || 32);
-    this.tileHeight = Number(map.tileheight || 32);
+    this.tileWidth = Number(map.tilewidth || TileGrid.tileWidth);
+    this.tileHeight = Number(map.tileheight || TileGrid.tileHeight);
     this.mapWidth = Number(map.width || 0) * this.tileWidth;
     this.mapHeight = Number(map.height || 0) * this.tileHeight;
     this.firstGid = map.tilesets && map.tilesets[0] ? Number(map.tilesets[0].firstgid || 1) : 1;
     this.layers = layerMap(map.layers || []);
-    this.terrain = tilesFromNamedTileLayers(map.layers || [], "terrain_solid", this.tileWidth, this.tileHeight);
-    this.decor = tilesFromNamedTileLayers(map.layers || [], "decor", this.tileWidth, this.tileHeight);
+    this.terrain = tilesFromNamedTileLayers(map.layers || [], MapLayers.terrain, this.tileWidth, this.tileHeight);
+    this.decor = tilesFromNamedTileLayers(map.layers || [], MapLayers.decor, this.tileWidth, this.tileHeight);
     this.modeBlocks = objectRectsFromLayers(map.layers || [])
-      .filter((object) => object.type === "yellowBlock" || object.type === "cyanBlock")
+      .filter((object) => object.type === ObjectTypes.yellowBlock || object.type === ObjectTypes.cyanBlock)
       .map((object) => ({
         ...object,
         modeBlock: object.props.modeBlock || defaultModeBlockFor(object.type)
       }));
     this.objects = objectRectsFromLayers(map.layers || [])
-      .filter((object) => object.type !== "yellowBlock" && object.type !== "cyanBlock");
-    this.worldObjects = objectRectsFromNamedLayers(map.layers || [], ["object", "objects"])
-      .filter((object) => object.type !== "yellowBlock" && object.type !== "cyanBlock" && object.type !== "box" && object.type !== "HazardBlock");
-    this.spikeObjects = this.objects.filter((object) => object.type === "HazardBlock");
+      .filter((object) => object.type !== ObjectTypes.yellowBlock && object.type !== ObjectTypes.cyanBlock);
+    this.worldObjects = objectRectsFromNamedLayers(map.layers || [], MapLayers.objectLayers)
+      .filter((object) => (
+        object.type !== ObjectTypes.yellowBlock &&
+        object.type !== ObjectTypes.cyanBlock &&
+        object.type !== ObjectTypes.box &&
+        object.type !== ObjectTypes.hazardBlock
+      ));
+    this.spikeObjects = this.objects.filter((object) => object.type === ObjectTypes.hazardBlock);
     this.boxes = this.objects
-      .filter((object) => object.type === "box")
+      .filter((object) => object.type === ObjectTypes.box)
       .map((box) => ({
         ...box,
         startX: box.x,
@@ -132,17 +283,21 @@ class ChromasightGame {
         vy: 0,
         grounded: false
       }));
-    this.spawns = this.objects.filter((object) => object.type === "spawn");
-    this.portals = this.objects.filter((object) => object.type === "portal");
-    this.ladders = this.objects.filter((object) => object.type === "ladder");
-    this.hazards = this.objects.filter((object) => object.type === "HazardBlock");
+    this.spawns = this.objects.filter((object) => object.type === ObjectTypes.spawn);
+    this.portals = this.objects.filter((object) => object.type === ObjectTypes.portal);
+    this.ladders = this.objects.filter((object) => object.type === ObjectTypes.ladder);
+    this.hazards = this.objects.filter((object) => object.type === ObjectTypes.hazardBlock);
     this.items = this.objects
-      .filter((object) => object.type === "key" || object.type === "book" || object.type === "item")
+      .filter((object) => (
+        object.type === ObjectTypes.key ||
+        object.type === ObjectTypes.book ||
+        object.type === ObjectTypes.item
+      ))
       .map((object) => ({
         ...object,
         collected: Boolean(object.props.collected || object.props.Picked || object.props.item?.Picked)
       }));
-    this.textBoxes = this.objects.filter((object) => object.type === "textBox" || object.type === "textbox");
+    this.textBoxes = this.objects.filter((object) => object.type === ObjectTypes.textBox || object.type === ObjectTypes.textbox);
     this.textTriggers = this.textBoxes.filter((object) => !object.text);
     this.textDisplays = this.textBoxes.filter((object) => object.text);
 
@@ -462,7 +617,7 @@ class ChromasightGame {
     if (!portal || portal === this.lastPortal) return;
 
     const target = portal.props.target || this.currentLevelName;
-    const spawnSet = portal.props.spawnSet || "Respawn_Point_01";
+    const spawnSet = portal.props.spawnSet || GAME_CONFIG.defaultSpawnName;
     this.lastPortal = portal;
 
     if (this.assets.maps?.[target]) {
@@ -481,7 +636,7 @@ class ChromasightGame {
       if (item.collected || !rectsOverlap(this.player, item)) continue;
       item.collected = true;
 
-      if (item.type === "key") {
+      if (item.type === ObjectTypes.key) {
         if (typeof playButtonSound === "function") playButtonSound();
         if (item.props.redAbilityunlock) this.unlockedModes.add("redBlindness");
         if (item.props.blueAbilityunlock) this.unlockedModes.add("blueBlindness");
@@ -559,6 +714,12 @@ class ChromasightGame {
   }
 }
 
+/**
+ * Parses a Tiled TSX file into the minimal grid metadata needed for rendering.
+ *
+ * @param {string} xmlText Raw TSX XML content loaded by p5.
+ * @returns {{tilewidth: number, tileheight: number, tilecount: number, columns: number}}
+ */
 function parseTileset(xmlText) {
   const doc = new DOMParser().parseFromString(xmlText, "application/xml");
   const tileset = doc.querySelector("tileset");
@@ -570,6 +731,12 @@ function parseTileset(xmlText) {
   };
 }
 
+/**
+ * Builds a quick lookup table for map layers by name.
+ *
+ * @param {Array<object>} layers Tiled layer data.
+ * @returns {Record<string, object>}
+ */
 function layerMap(layers) {
   return layers.reduce((result, layer) => {
     result[layer.name] = layer;
@@ -577,6 +744,14 @@ function layerMap(layers) {
   }, {});
 }
 
+/**
+ * Converts a Tiled tile layer into positioned render tiles.
+ *
+ * @param {object} layer Tiled tile layer.
+ * @param {number} tileWidth Width of one map tile in pixels.
+ * @param {number} tileHeight Height of one map tile in pixels.
+ * @returns {Array<{gid: number, x: number, y: number}>}
+ */
 function tilesFromLayer(layer, tileWidth, tileHeight) {
   if (!layer || !Array.isArray(layer.data)) return [];
 
@@ -632,6 +807,12 @@ function objectRectsFromNamedLayers(layers, names) {
     .flatMap((layer) => objectRects(layer));
 }
 
+/**
+ * Normalizes Tiled objects into rectangle records used by physics and rendering.
+ *
+ * @param {object} layer Tiled object layer.
+ * @returns {Array<object>}
+ */
 function objectRects(layer) {
   if (!layer || !Array.isArray(layer.objects)) return [];
   return layer.objects.map((object) => ({
@@ -647,30 +828,14 @@ function objectRects(layer) {
   }));
 }
 
+/**
+ * Provides fallback mode-block behavior when the map object has no custom data.
+ *
+ * @param {string} type Tiled object type.
+ * @returns {object}
+ */
 function defaultModeBlockFor(type) {
-  if (type === "yellowBlock") {
-    return {
-      collision_blueBlindness: true,
-      collision_colorBlindness: true,
-      collision_redBlindness: false,
-      render_blueBlindness: "yellow_blueBlind",
-      render_colorBlindness: "yellowMuted",
-      render_redBlindness: "yellow"
-    };
-  }
-
-  if (type === "cyanBlock") {
-    return {
-      collision_blueBlindness: false,
-      collision_colorBlindness: true,
-      collision_redBlindness: true,
-      render_blueBlindness: "cyan",
-      render_colorBlindness: "cyanMuted",
-      render_redBlindness: "cyan_redBlind"
-    };
-  }
-
-  return {};
+  return ModeBlockDefaults[type] || {};
 }
 
 function parseProperties(properties) {

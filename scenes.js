@@ -43,24 +43,24 @@ ChromasightGame.prototype.drawBoxes = function () {
 
 ChromasightGame.prototype.drawWorldObjects = function (objects = this.objects) {
   for (const object of objects) {
-    if (object.type === "box") {
+    if (object.type === ObjectTypes.box) {
       this.drawBoxObject(object);
       continue;
     }
 
-    if (object.type === "HazardBlock") {
+    if (object.type === ObjectTypes.hazardBlock) {
       this.drawHazardObject(object);
       continue;
     }
 
-    if (object.type === "portal") {
+    if (object.type === ObjectTypes.portal) {
       this.drawPortalObject(object);
     }
   }
 };
 
 ChromasightGame.prototype.drawBoxObject = function (box) {
-  drawTileGid(GAME_CONFIG.boxTileGid, box.x, box.y, box.w, box.h, this.assets.tilesetImage, this.assets.tilesetMeta, this.firstGid);
+  drawTileGid(GAME_CONFIG.boxGrid.tileGid, box.x, box.y, box.w, box.h, this.assets.tilesetImage, this.assets.tilesetMeta, this.firstGid);
 };
 
 ChromasightGame.prototype.drawHazardObject = function (hazard) {
@@ -68,7 +68,7 @@ ChromasightGame.prototype.drawHazardObject = function (hazard) {
     for (let x = hazard.x; x < hazard.x + hazard.w; x += this.tileWidth) {
       const tileW = Math.min(this.tileWidth, hazard.x + hazard.w - x);
       const tileH = Math.min(this.tileHeight, hazard.y + hazard.h - y);
-      drawTileGid(GAME_CONFIG.hazardTileGid, x, y, tileW, tileH, this.assets.tilesetImage, this.assets.tilesetMeta, this.firstGid);
+      drawTileGid(GAME_CONFIG.hazardGrid.tileGid, x, y, tileW, tileH, this.assets.tilesetImage, this.assets.tilesetMeta, this.firstGid);
     }
   }
 };
@@ -89,7 +89,7 @@ ChromasightGame.prototype.drawTileLayer = function (tiles) {
 
 ChromasightGame.prototype.drawImageLayers = function (layers) {
   for (const layer of layers) {
-    if (layer.image === "../img/Start.png") {
+    if (layer.image === GAME_CONFIG.tiledStartImageLayerPath) {
       image(this.assets.startImage, layer.x, layer.y, layer.imagewidth, layer.imageheight);
     }
   }
@@ -113,12 +113,12 @@ ChromasightGame.prototype.drawItems = function () {
   for (const item of this.items) {
     if (item.collected) continue;
 
-    if (item.type === "key") {
+    if (item.type === ObjectTypes.key) {
       drawTileGid(GAME_CONFIG.keyTileGid, item.x, item.y, item.w, item.h, this.assets.tilesetImage, this.assets.tilesetMeta, this.firstGid);
       continue;
     }
 
-    if (item.type === "book") {
+    if (item.type === ObjectTypes.book) {
       drawTileGid(GAME_CONFIG.bookTileGid, item.x, item.y, item.w, item.h, this.assets.tilesetImage, this.assets.tilesetMeta, this.firstGid);
       continue;
     }
@@ -256,6 +256,18 @@ ChromasightGame.prototype.drawUi = function () {
   }
 };
 
+/**
+ * Draws a single gid from a Tiled tileset image.
+ *
+ * @param {number} gid Global tile id from the TMJ file.
+ * @param {number} dx Destination x.
+ * @param {number} dy Destination y.
+ * @param {number} dw Destination width.
+ * @param {number} dh Destination height.
+ * @param {p5.Image} sheet Tileset image.
+ * @param {{tilewidth: number, tileheight: number, columns: number}} meta Parsed TSX grid data.
+ * @param {number} firstGid First gid declared by the TMJ tileset reference.
+ */
 function drawTileGid(gid, dx, dy, dw, dh, sheet, meta, firstGid) {
   if (!sheet || !meta || !gid) return;
 
@@ -265,6 +277,13 @@ function drawTileGid(gid, dx, dy, dw, dh, sheet, meta, firstGid) {
   image(sheet, dx, dy, dw, dh, sx, sy, meta.tilewidth, meta.tileheight);
 }
 
+/**
+ * Selects the current robot frame according to movement state.
+ *
+ * @param {object} player Player physics state.
+ * @param {object} meta Parsed robot TSX metadata.
+ * @returns {{sx: number, sy: number, sw: number, sh: number}}
+ */
 function playerFrameFor(player, meta) {
   let tileId = 0;
 

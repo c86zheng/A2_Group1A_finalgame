@@ -31,6 +31,7 @@ function preload() {
   buttonSound = loadSound(GAME_CONFIG.buttonSoundPath);
 }
 
+/** Initializes p5, parses tileset metadata, and creates the game instance. */
 function setup() {
   const canvas = createCanvas(GAME_CONFIG.canvasWidth, GAME_CONFIG.canvasHeight);
   canvas.parent("canvas-holder");
@@ -53,6 +54,7 @@ function setup() {
   if (buttonSound) buttonSound.setVolume(GAME_CONFIG.buttonSoundVolume);
 }
 
+/** Main p5 render loop. */
 function draw() {
   background(GAME_CONFIG.modeBackgroundMap[game?.mode] || "#969696");
   game.update(input);
@@ -96,18 +98,20 @@ function keyPressed() {
   }
 
   if (game.showCollisionDebug && ["1", "2", "3"].includes(key)) {
-    game.loadLevel(`level_${key}`, "Respawn_Point_01");
+    game.loadLevel(`level_${key}`, GAME_CONFIG.defaultSpawnName);
     game.setMessage(`Debug jump: level ${key}`);
     return false;
   }
 }
 
+/** Plays the UI click sound after key-style collectibles are picked up. */
 function playButtonSound() {
   if (!buttonSound) return;
   if (buttonSound.isPlaying()) buttonSound.stop();
   buttonSound.play();
 }
 
+/** Starts the background music after the game leaves the start screen. */
 function playBgm() {
   if (!bgm || bgm.isPlaying()) return;
   bgm.play();
