@@ -132,7 +132,7 @@ const PhysicsConfig = Object.freeze({
 /** Volume controls are separated so bgm and effects can be tuned independently. */
 const AudioConfig = Object.freeze({
   bgmVolume: 0.5,
-  soundEffectVolume: 0.5,
+  soundEffectVolume: 0.3,
   buttonSoundVolume: 1
 });
 

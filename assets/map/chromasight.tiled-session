@@ -1,5 +1,5 @@
 {
-    "activeFile": "level_1.tmj",
+    "activeFile": "level_2.tmj",
     "expandedProjectPaths": [
         "."
     ],
@@ -91,10 +91,10 @@
     "property.type": "collectible",
     "recentFiles": [
         "tiles_packed.tsx",
+        "level_1.tmj",
         "Start.tmj",
         "level_3.tmj",
         "level_2.tmj",
-        "level_1.tmj",
         "level_1.tmx",
         "robotFighter.tsx"
     ],
