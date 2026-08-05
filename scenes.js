@@ -9,6 +9,11 @@ ChromasightGame.prototype.draw = function () {
     return;
   }
 
+  if (this.scene === "story") {
+    this.drawStoryScreen();
+    return;
+  }
+
   if (this.scene === "win") {
     this.drawWinScreen();
     return;
@@ -49,6 +54,44 @@ ChromasightGame.prototype.drawWinScreen = function () {
   pop();
 };
 
+ChromasightGame.prototype.drawStoryScreen = function () {
+  push();
+  noStroke();
+  fill(0);
+  rect(0, 0, width, height);
+
+  if (this.assets.storyVideo) {
+    drawMediaCover(this.assets.storyVideo, 0, 0, width, height);
+  }
+
+  const isPlaying = Boolean(this.assets.storyVideo?.elt && !this.assets.storyVideo.elt.paused && !this.assets.storyVideo.elt.ended);
+  this.drawMenuButton(this.storyPlayButton, isPlaying ? "Pause" : "Play");
+  this.drawMenuButton(this.storySkipButton, "Skip");
+  pop();
+};
+
+function drawMediaCover(media, dx, dy, dw, dh) {
+  const sourceWidth = media?.elt?.videoWidth || media?.width || dw;
+  const sourceHeight = media?.elt?.videoHeight || media?.height || dh;
+  const sourceAspect = sourceWidth / sourceHeight;
+  const destAspect = dw / dh;
+
+  let sx = 0;
+  let sy = 0;
+  let sw = sourceWidth;
+  let sh = sourceHeight;
+
+  if (sourceAspect > destAspect) {
+    sw = sourceHeight * destAspect;
+    sx = (sourceWidth - sw) / 2;
+  } else if (sourceAspect < destAspect) {
+    sh = sourceWidth / destAspect;
+    sy = (sourceHeight - sh) / 2;
+  }
+
+  image(media, dx, dy, dw, dh, sx, sy, sw, sh);
+}
+
 ChromasightGame.prototype.drawWorld = function () {
   push();
   translate(-Math.floor(this.cameraX), -Math.floor(this.cameraY));
@@ -58,7 +101,6 @@ ChromasightGame.prototype.drawWorld = function () {
   this.drawWorldObjects(this.worldObjects);
   this.drawBoxes();
   this.drawItems();
-  this.drawTextBoxes();
   this.drawWorldObjects(this.spikeObjects);
   this.drawPlayer();
   if (this.showCollisionDebug) this.drawCollisionDebug();
@@ -200,16 +242,61 @@ ChromasightGame.prototype.drawTextBox = function (textBox) {
   const message = textData.text || "";
   if (!message) return;
 
+  const isHintText = typeof HINT_TEXTS !== "undefined" && Object.prototype.hasOwnProperty.call(HINT_TEXTS, textBox.name);
+  if (!isHintText) {
+    push();
+    textAlign(textAlignFromTiled(textData.halign), TOP);
+    textSize(Number(textData.pixelsize || 12));
+    stroke(40, 45, 56);
+    strokeWeight(3);
+    fill(255);
+    text(message, textBox.x, textBox.y, textBox.w, textBox.h);
+    pop();
+    return;
+  }
+
   push();
+  const boxW = Math.min(680, width - 48);
+  const boxH = Math.max(58, Math.min(116, textHeightForMessage(message, boxW - 32, Number(textData.pixelsize || 16)) + 28));
+  const boxX = (width - boxW) / 2;
+  const boxY = 70;
+
+  noStroke();
+  fill(8, 12, 18, 220);
+  rect(boxX, boxY, boxW, boxH, 8);
+  stroke(255, 255, 255, 55);
+  strokeWeight(1);
+  noFill();
+  rect(boxX + 0.5, boxY + 0.5, boxW - 1, boxH - 1, 8);
+
   textAlign(textAlignFromTiled(textData.halign), TOP);
   textSize(Number(textData.pixelsize || 12));
-  stroke(40, 45, 56);
-  strokeWeight(3);
+  noStroke();
   fill(255);
-
-  text(message, textBox.x, textBox.y, textBox.w, textBox.h);
+  text(message, boxX + 16, boxY + 14, boxW - 32, boxH - 24);
   pop();
 };
+
+function textHeightForMessage(message, maxWidth, size) {
+  push();
+  textSize(size);
+  const words = String(message).split(/\s+/);
+  let line = "";
+  let lines = 1;
+
+  for (const word of words) {
+    const testLine = line ? `${line} ${word}` : word;
+    if (line && textWidth(testLine) > maxWidth) {
+      lines += 1;
+      line = word;
+    } else {
+      line = testLine;
+    }
+  }
+
+  pop();
+  return lines * size * 1.3;
+}
 
 ChromasightGame.prototype.drawPlayer = function () {
   const p = this.player;
@@ -312,6 +399,8 @@ ChromasightGame.prototype.drawUi = function () {
     textAlign(LEFT, TOP);
     text("Press F to enter portal", width - 204, height - 44);
   }
+
+  this.drawTextBoxes();
 };
 
 /**

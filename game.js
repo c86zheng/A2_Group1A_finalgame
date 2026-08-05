@@ -28,6 +28,8 @@ const AssetPaths = Object.freeze({
   startImage: "assets/img/Start.png",
   controlsImage: "assets/img/Options.png",
   winImage: "assets/img/AllBooks.png",
+  storyVideo: "assets/video/story.mp4",
+  storyAudio: "assets/sound/story.mp4",
   tiledStartImageLayer: "../img/Start.png",
   bgm: "assets/sound/bgm.wav",
   buttonSound: "assets/sound/buttonon.mp3",
@@ -58,6 +60,12 @@ const ObjectTypes = Object.freeze({
   book: "book",
   textBox: "textBox",
   textbox: "textbox"
+});
+
+const HINT_TEXTS = Object.freeze({
+  Hint_01: "Pressing Q or E seems to switch modes.",
+  Hint_02: "Maybe I can hold Shift to pull that box out.",
+  Hint_03: "I don’t think I can reach this book right now. I should come back later. These books seem important."
 });
 
 /** Base tile grid used by the map tileset. */
@@ -162,6 +170,8 @@ const GAME_CONFIG = {
   startImagePath: AssetPaths.startImage,
   controlsImagePath: AssetPaths.controlsImage,
   winImagePath: AssetPaths.winImage,
+  storyVideoPath: AssetPaths.storyVideo,
+  storyAudioPath: AssetPaths.storyAudio,
   tiledStartImageLayerPath: AssetPaths.tiledStartImageLayer,
   bgmPath: AssetPaths.bgm,
   bgmVolume: AudioConfig.bgmVolume,
@@ -240,6 +250,8 @@ class ChromasightGame {
     this.messageTimer = 0;
     this.lastPortal = null;
     this.currentRespawnName = "";
+    this.pendingStoryLevelName = null;
+    this.pendingStorySpawnName = null;
     this.totalBooks = countBooksInMaps(this.assets.maps || {});
     this.collectedBookKeys = collectedBookKeysFromSave(this.assets.maps || {}, this.saveData);
     this.collectedBooks = this.collectedBookKeys.size;
@@ -250,6 +262,20 @@ class ChromasightGame {
       w: 160,
       h: 42,
       name: "Back"
+    };
+    this.storyPlayButton = {
+      x: GAME_CONFIG.canvasWidth - 278,
+      y: GAME_CONFIG.canvasHeight - 62,
+      w: 118,
+      h: 42,
+      name: "Play"
+    };
+    this.storySkipButton = {
+      x: GAME_CONFIG.canvasWidth - 148,
+      y: GAME_CONFIG.canvasHeight - 62,
+      w: 118,
+      h: 42,
+      name: "Skip"
     };
     this.player = {
       x: 0,
@@ -268,6 +294,8 @@ class ChromasightGame {
 
   loadStartMap(map) {
     this.scene = "start";
+    this.pendingStoryLevelName = null;
+    this.pendingStorySpawnName = null;
     this.map = map;
     this.tileWidth = Number(map.tilewidth || TileGrid.tileWidth);
     this.tileHeight = Number(map.tileheight || TileGrid.tileHeight);
@@ -305,7 +333,33 @@ class ChromasightGame {
 
   returnToStartScreen() {
     this.hasWon = this.totalBooks > 0 && this.collectedBooks >= this.totalBooks;
+    if (typeof stopStoryMedia === "function") stopStoryMedia();
+    if (typeof bgm !== "undefined" && bgm && bgm.isPlaying()) bgm.stop();
     this.loadStartMap(this.assets.startMap);
+  }
+
+  beginStory(levelName, spawnName = null) {
+    this.scene = "story";
+    this.pendingStoryLevelName = levelName;
+    this.pendingStorySpawnName = spawnName;
+    this.cameraX = 0;
+    this.cameraY = 0;
+    if (typeof playStoryMedia === "function") playStoryMedia();
+  }
+
+  skipStory() {
+    if (typeof stopStoryMedia === "function") stopStoryMedia();
+
+    const levelName = this.pendingStoryLevelName || "level_1";
+    const spawnName = this.pendingStorySpawnName || null;
+    this.pendingStoryLevelName = null;
+    this.pendingStorySpawnName = null;
+    this.saveData = {
+      ...this.saveData,
+      hasSeenStory: true
+    };
+    if (typeof playBgm === "function") playBgm();
+    this.loadLevel(levelName, spawnName);
   }
 
   loadMap(map, spawnName = null) {
@@ -368,9 +422,16 @@ class ChromasightGame {
       };
     });
     this.collectedBooks = this.collectedBookKeys.size;
-    this.textBoxes = this.objects.filter((object) => object.type === ObjectTypes.textBox || object.type === ObjectTypes.textbox);
-    this.textTriggers = this.textBoxes.filter((object) => !object.text);
-    this.textDisplays = this.textBoxes.filter((object) => object.text);
+    this.textBoxes = this.objects
+      .filter((object) => Object.prototype.hasOwnProperty.call(HINT_TEXTS, object.name))
+      .map((object) => ({
+        ...object,
+        text: {
+          text: HINT_TEXTS[object.name],
+          halign: "center",
+          pixelsize: 16
+        }
+      }));
 
     const spawn = this.findSpawn(spawnName);
     this.setRespawn(spawn);
@@ -778,10 +839,7 @@ class ChromasightGame {
   }
 
   getActiveTextDisplays() {
-    const hasActiveTrigger = this.textTriggers.some((trigger) => rectsOverlap(this.player, trigger));
-    if (!hasActiveTrigger) return [];
-
-    return this.textDisplays.filter((textBox) => textBox.props.show !== false);
+    return this.textBoxes.filter((textBox) => rectsOverlap(this.player, textBox));
   }
 
   switchMode(direction) {
@@ -851,8 +909,27 @@ class ChromasightGame {
       const savedLevelName = this.assets.maps?.[this.saveData.currentLevelName]
         ? this.saveData.currentLevelName
         : "level_1";
+      if (!this.saveData.hasSeenStory) {
+        this.beginStory(savedLevelName, this.saveData.currentRespawnName || null);
+        return true;
+      }
+      if (typeof playBgm === "function") playBgm();
       this.loadLevel(savedLevelName, this.saveData.currentRespawnName || null);
       return true;
+    }
+
+    if (this.scene === "story") {
+      if (pointInRect(x, y, this.storyPlayButton)) {
+        if (typeof toggleStoryPlayback === "function") toggleStoryPlayback();
+        return true;
+      }
+
+      if (pointInRect(x, y, this.storySkipButton)) {
+        this.skipStory();
+        return true;
+      }
+
+      return false;
     }
 
     if (this.scene === "controls" && pointInRect(x, y, this.optionsBackButton)) {
@@ -877,7 +954,8 @@ class ChromasightGame {
       currentLevelName: this.currentLevelName,
       currentRespawnName: this.currentRespawnName,
       currentMode: this.mode,
-      unlockedModes: [...this.unlockedModes]
+      unlockedModes: [...this.unlockedModes],
+      hasSeenStory: Boolean(this.saveData.hasSeenStory)
     });
   }
 
@@ -925,6 +1003,8 @@ class ChromasightGame {
   resetSaveProgress() {
     this.saveData = this.saveManager?.reset() || createMemorySave();
     this.currentLevelName = "level_1";
+    this.pendingStoryLevelName = null;
+    this.pendingStorySpawnName = null;
     this.mode = GAME_CONFIG.initialMode;
     this.unlockedModes = new Set([GAME_CONFIG.initialMode]);
     this.lastPortal = null;
@@ -1075,7 +1155,8 @@ function createMemorySave() {
     currentRespawnName: "",
     currentMode: GAME_CONFIG.initialMode,
     unlockedModes: [GAME_CONFIG.initialMode],
-    collectedItems: {}
+    collectedItems: {},
+    hasSeenStory: false
   };
 }
 

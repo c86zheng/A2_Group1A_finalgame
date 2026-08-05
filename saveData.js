@@ -22,6 +22,7 @@ class ChromasightSaveData {
       currentMode: "colorBlindness",
       unlockedModes: ["colorBlindness"],
       collectedItems: {},
+      hasSeenStory: false,
       updatedAt: new Date().toISOString()
     };
   }
@@ -103,6 +104,7 @@ class ChromasightSaveData {
             : []
         ])
       ),
+      hasSeenStory: Boolean(saveData.hasSeenStory),
       updatedAt: saveData.updatedAt || defaultSave.updatedAt
     };
   }

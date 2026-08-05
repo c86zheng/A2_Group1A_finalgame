@@ -15,6 +15,8 @@ let playerImage;
 let startImage;
 let controlsImage;
 let winImage;
+let storyVideo;
+let storyAudio;
 let bgm;
 let buttonSound;
 let jumpSound;
@@ -52,12 +54,21 @@ function setup() {
   canvas.parent("canvas-holder");
   noSmooth();
   saveManager = new ChromasightSaveData();
+  storyVideo = createVideo([GAME_CONFIG.storyVideoPath]);
+  storyVideo.hide();
+  storyVideo.volume(0);
+  storyVideo.elt.muted = true;
+  storyVideo.elt.preload = "auto";
+  storyVideo.elt.addEventListener("ended", handleStoryEnded);
+  storyAudio = new Audio(GAME_CONFIG.storyAudioPath);
+  storyAudio.preload = "auto";
 
   if (bgm) bgm.setVolume(GAME_CONFIG.bgmVolume);
   if (buttonSound) buttonSound.setVolume(GAME_CONFIG.buttonSoundVolume);
   for (const sound of [jumpSound, optionsSound, startscreenSound, bookSound, winSound]) {
     if (sound) sound.setVolume(GAME_CONFIG.soundEffectVolume);
   }
+  if (storyAudio) storyAudio.volume = GAME_CONFIG.soundEffectVolume;
 
   game = new ChromasightGame({
     startMap,
@@ -69,6 +80,7 @@ function setup() {
     startImage,
     controlsImage,
     winImage,
+    storyVideo,
     playerImage,
     saveManager
   });
@@ -89,6 +101,25 @@ function mousePressed() {
 }
 
 function keyPressed() {
+  if (game.scene === "story") {
+    if (key === " ") {
+      toggleStoryPlayback();
+      return false;
+    }
+
+    if (key === "Escape") {
+      game.returnToStartScreen();
+      return false;
+    }
+
+    if (keyCode === BACKSPACE || keyCode === ENTER) {
+      game.skipStory();
+      return false;
+    }
+
+    return false;
+  }
+
   if (key === "Escape" && game.scene !== "start") {
     game.returnToStartScreen();
     return false;
@@ -179,6 +210,58 @@ function playStartscreenSound() {
   if (!startscreenSound) return;
   if (startscreenSound.isPlaying()) startscreenSound.stop();
   startscreenSound.play();
+}
+
+/** Starts the story video and audio from the beginning. */
+function playStoryMedia() {
+  stopMenuSounds();
+  if (bgm && bgm.isPlaying()) bgm.stop();
+
+  if (storyVideo?.elt) {
+    storyVideo.elt.currentTime = 0;
+    storyVideo.elt.play().catch(() => {});
+  }
+
+  if (storyAudio) {
+    storyAudio.currentTime = 0;
+    storyAudio.play().catch(() => {});
+  }
+}
+
+/** Pauses the story media without rewinding. */
+function pauseStoryMedia() {
+  if (storyVideo?.elt) storyVideo.elt.pause();
+  if (storyAudio) storyAudio.pause();
+}
+
+/** Stops the story media and rewinds to the beginning. */
+function stopStoryMedia() {
+  if (storyVideo?.elt) {
+    storyVideo.elt.pause();
+    storyVideo.elt.currentTime = 0;
+    storyVideo.hide();
+  }
+
+  if (storyAudio) {
+    storyAudio.pause();
+    storyAudio.currentTime = 0;
+  }
+}
+
+/** Toggles the story media between play and pause. */
+function toggleStoryPlayback() {
+  if (!storyVideo?.elt) return;
+
+  if (storyVideo.elt.paused) {
+    playStoryMedia();
+  } else {
+    pauseStoryMedia();
+  }
+}
+
+function handleStoryEnded() {
+  if (game?.scene !== "story") return;
+  game.skipStory();
 }
 
 /** Plays the book pickup sound when a book is collected. */

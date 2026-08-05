@@ -18,11 +18,11 @@
                 2,
                 11
             ],
-            "scale": 3,
+            "scale": 0.5,
             "selectedLayer": 3,
             "viewCenter": {
-                "x": 347.5,
-                "y": 346
+                "x": 1095,
+                "y": 394
             }
         },
         "level_1.tmx": {
@@ -43,24 +43,23 @@
                 6,
                 3
             ],
-            "scale": 0.33,
-            "selectedLayer": 1,
+            "scale": 0.5,
+            "selectedLayer": 3,
             "viewCenter": {
-                "x": 534.8484848484848,
-                "y": 454.5454545454545
+                "x": 1009,
+                "y": 646
             }
         },
         "level_3.tmj": {
             "expandedObjectLayers": [
-                2,
                 6,
                 3
             ],
-            "scale": 1,
+            "scale": 0.5,
             "selectedLayer": 5,
             "viewCenter": {
-                "x": 574.5,
-                "y": 278
+                "x": 1475,
+                "y": 594
             }
         },
         "robotFighter.tsx": {
