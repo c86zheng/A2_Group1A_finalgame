@@ -687,6 +687,24 @@
                  "width":64,
                  "x":544,
                  "y":576
+                }, 
+                {
+                 "height":64,
+                 "id":138,
+                 "name":"Hint_04",
+                 "opacity":1,
+                 "properties":[
+                        {
+                         "name":"show",
+                         "type":"bool",
+                         "value":false
+                        }],
+                 "rotation":0,
+                 "type":"textBox",
+                 "visible":true,
+                 "width":64,
+                 "x":448,
+                 "y":352
                 }],
          "opacity":1,
          "type":"objectgroup",
@@ -796,7 +814,7 @@
          "y":0
         }],
  "nextlayerid":7,
- "nextobjectid":138,
+ "nextobjectid":139,
  "orientation":"orthogonal",
  "renderorder":"right-down",
  "tiledversion":"1.12.2",

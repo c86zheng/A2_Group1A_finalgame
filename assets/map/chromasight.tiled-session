@@ -43,11 +43,11 @@
                 3,
                 2
             ],
-            "scale": 0.5,
+            "scale": 2,
             "selectedLayer": 3,
             "viewCenter": {
-                "x": 993,
-                "y": 479
+                "x": 527.25,
+                "y": 441.5
             }
         },
         "level_3.tmj": {
