@@ -722,6 +722,12 @@
                  "id":128,
                  "name":"spikes",
                  "opacity":1,
+                 "properties":[
+                        {
+                         "name":"FaceUp",
+                         "type":"bool",
+                         "value":false
+                        }],
                  "rotation":0,
                  "type":"HazardBlock",
                  "visible":true,
@@ -752,6 +758,12 @@
                  "id":130,
                  "name":"spikes",
                  "opacity":1,
+                 "properties":[
+                        {
+                         "name":"FaceUp",
+                         "type":"bool",
+                         "value":true
+                        }],
                  "rotation":0,
                  "type":"HazardBlock",
                  "visible":true,
@@ -764,6 +776,12 @@
                  "id":131,
                  "name":"spikes",
                  "opacity":1,
+                 "properties":[
+                        {
+                         "name":"FaceUp",
+                         "type":"bool",
+                         "value":true
+                        }],
                  "rotation":0,
                  "type":"HazardBlock",
                  "visible":true,

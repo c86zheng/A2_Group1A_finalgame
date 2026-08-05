@@ -65,7 +65,8 @@ const ObjectTypes = Object.freeze({
 const HINT_TEXTS = Object.freeze({
   Hint_01: "Pressing Q or E seems to switch modes.",
   Hint_02: "Maybe I can hold Shift to pull that box out.",
-  Hint_03: "I don’t think I can reach this book right now. I should come back later. These books seem important."
+  Hint_03: "I don’t think I can reach this book right now. I should come back later. These books seem important.",
+  Hint_04: "I think I can go back and get that book now."
 });
 
 /** Base tile grid used by the map tileset. */
@@ -344,6 +345,7 @@ class ChromasightGame {
     this.pendingStorySpawnName = spawnName;
     this.cameraX = 0;
     this.cameraY = 0;
+    if (typeof bgm !== "undefined" && bgm && bgm.isPlaying()) bgm.stop();
     if (typeof playStoryMedia === "function") playStoryMedia();
   }
 
@@ -839,7 +841,14 @@ class ChromasightGame {
   }
 
   getActiveTextDisplays() {
-    return this.textBoxes.filter((textBox) => rectsOverlap(this.player, textBox));
+    return this.textBoxes.filter((textBox) => {
+      if (textBox.name === "Hint_03" && this.hasCollectedBlueKey()) return false;
+      return rectsOverlap(this.player, textBox);
+    });
+  }
+
+  hasCollectedBlueKey() {
+    return this.unlockedModes.has("blueBlindness");
   }
 
   switchMode(direction) {

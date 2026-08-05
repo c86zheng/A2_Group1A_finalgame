@@ -400,7 +400,32 @@ ChromasightGame.prototype.drawUi = function () {
     text("Press F to enter portal", width - 204, height - 44);
   }
 
+  if (this.showCollisionDebug) this.drawDebugShortcutMenu();
   this.drawTextBoxes();
+};
+
+ChromasightGame.prototype.drawDebugShortcutMenu = function () {
+  const lines = [
+    "1 - level_1",
+    "2 - level_2",
+    "3 - level_3",
+    "4 - story",
+    "5 - ending"
+  ];
+  const boxW = 132;
+  const boxH = 104;
+  const boxX = width - boxW - 16;
+  const boxY = 14;
+
+  push();
+  noStroke();
+  fill(8, 12, 18, 210);
+  rect(boxX, boxY, boxW, boxH, 6);
+  fill(240, 245, 250);
+  textAlign(LEFT, TOP);
+  textSize(13);
+  text(lines.join("\n"), boxX + 12, boxY + 10);
+  pop();
 };
 
 /**

@@ -177,9 +177,15 @@ function keyPressed() {
     return false;
   }
 
-  if (game.showCollisionDebug && ["1", "2", "3"].includes(key)) {
-    game.loadLevel(`level_${key}`, GAME_CONFIG.defaultSpawnName);
-    game.setMessage(`Debug jump: level ${key}`);
+  if (game.showCollisionDebug && ["1", "2", "3", "4", "5"].includes(key)) {
+    if (["1", "2", "3"].includes(key)) {
+      game.loadLevel(`level_${key}`, GAME_CONFIG.defaultSpawnName);
+      game.setMessage(`Debug jump: level ${key}`);
+    } else if (key === "4") {
+      game.beginStory(game.currentLevelName, game.currentRespawnName || null);
+    } else if (key === "5") {
+      game.triggerWin();
+    }
     return false;
   }
 }
