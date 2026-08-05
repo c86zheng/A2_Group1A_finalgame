@@ -19,13 +19,13 @@ body {
 }
 
 #game-shell {
-  width: min(100vw, 1468px);
+  width: min(100vw, 980px);
   padding: 14px;
 }
 
 canvas {
   display: block;
-  width: min(100%, 1440px);
+  width: 100%;
   height: auto;
   border: 2px solid #2d3644;
   background: #151b24;
