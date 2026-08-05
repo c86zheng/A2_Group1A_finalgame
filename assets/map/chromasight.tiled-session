@@ -1,5 +1,5 @@
 {
-    "activeFile": "level_2.tmj",
+    "activeFile": "level_1.tmj",
     "expandedProjectPaths": [
         "."
     ],
@@ -18,11 +18,11 @@
                 2,
                 11
             ],
-            "scale": 0.5,
+            "scale": 2,
             "selectedLayer": 3,
             "viewCenter": {
-                "x": 1095,
-                "y": 394
+                "x": 1276.75,
+                "y": 300.5
             }
         },
         "level_1.tmx": {
@@ -91,10 +91,10 @@
     "property.type": "collectible",
     "recentFiles": [
         "tiles_packed.tsx",
-        "level_1.tmj",
         "Start.tmj",
         "level_3.tmj",
         "level_2.tmj",
+        "level_1.tmj",
         "level_1.tmx",
         "robotFighter.tsx"
     ],
