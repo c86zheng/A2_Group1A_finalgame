@@ -4,18 +4,48 @@ ChromasightGame.prototype.draw = function () {
     return;
   }
 
+  if (this.scene === "controls") {
+    this.drawControlsScreen();
+    return;
+  }
+
+  if (this.scene === "win") {
+    this.drawWinScreen();
+    return;
+  }
+
   this.drawWorld();
   this.drawUi();
 };
 
 ChromasightGame.prototype.drawStartScreen = function () {
   push();
-  translate(-Math.floor(this.cameraX), -Math.floor(this.cameraY));
-  this.drawImageLayers(this.startImageLayers || []);
-  this.drawTileLayer(this.startTiles || []);
+  if (this.assets.startImage) {
+    image(this.assets.startImage, 0, 0, width, height);
+  } else {
+    translate(-Math.floor(this.cameraX), -Math.floor(this.cameraY));
+    this.drawImageLayers(this.startImageLayers || []);
+    this.drawTileLayer(this.startTiles || []);
+  }
   for (const textBox of this.startTexts || []) {
     this.drawTextBox(textBox);
   }
+  for (const button of this.startButtons || []) {
+    this.drawMenuButton(button, button.name);
+  }
+  pop();
+};
+
+ChromasightGame.prototype.drawControlsScreen = function () {
+  push();
+  image(this.assets.controlsImage, 0, 0, width, height);
+  this.drawMenuButton(this.optionsBackButton, "Back");
+  pop();
+};
+
+ChromasightGame.prototype.drawWinScreen = function () {
+  push();
+  image(this.assets.winImage, 0, 0, width, height);
   pop();
 };
 
@@ -93,6 +123,33 @@ ChromasightGame.prototype.drawImageLayers = function (layers) {
       image(this.assets.startImage, layer.x, layer.y, layer.imagewidth, layer.imageheight);
     }
   }
+};
+
+ChromasightGame.prototype.drawMenuButton = function (button, label) {
+  if (!button) return;
+
+  const hovered = typeof mouseX === "number" && typeof mouseY === "number" && pointInRect(mouseX, mouseY, button);
+  const primary = label === "Start";
+
+  push();
+  noStroke();
+  fill(12, 16, 24, 120);
+  rect(button.x + 5, button.y + 6, button.w, button.h, 12);
+  stroke(25, 28, 36);
+  strokeWeight(3);
+  if (primary) {
+    fill(hovered ? 255 : 246, hovered ? 220 : 213, hovered ? 108 : 74, hovered ? 255 : 235);
+  } else {
+    fill(hovered ? 241 : 222, hovered ? 241 : 225, hovered ? 241 : 230, hovered ? 255 : 235);
+  }
+  rect(button.x, button.y, button.w, button.h, 12);
+  noStroke();
+  fill(25, 28, 36);
+  textAlign(CENTER, CENTER);
+  textStyle(BOLD);
+  textSize(hovered ? 27 : 25);
+  text(label, button.x + button.w / 2, button.y + button.h / 2 + 1);
+  pop();
 };
 
 ChromasightGame.prototype.drawModeBlocks = function () {

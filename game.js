@@ -26,9 +26,16 @@ const AssetPaths = Object.freeze({
   tilesetImage: "assets/img/tiles_packed.png",
   playerImage: "assets/img/robotFighter.png",
   startImage: "assets/img/Start.png",
+  controlsImage: "assets/img/Options.png",
+  winImage: "assets/img/AllBooks.png",
   tiledStartImageLayer: "../img/Start.png",
   bgm: "assets/sound/bgm.wav",
-  buttonSound: "assets/sound/buttonon.mp3"
+  buttonSound: "assets/sound/buttonon.mp3",
+  jumpSound: "assets/sound/Jump.mp3",
+  optionsSound: "assets/sound/Options.mp3",
+  startScreenSound: "assets/sound/Startscreen.mp3",
+  bookSound: "assets/sound/book.mp3",
+  winSound: "assets/sound/Win.mp3"
 });
 
 /** Tile layer names exported from Tiled. */
@@ -116,6 +123,7 @@ const PhysicsConfig = Object.freeze({
 /** Volume controls are separated so bgm and effects can be tuned independently. */
 const AudioConfig = Object.freeze({
   bgmVolume: 0.5,
+  soundEffectVolume: 0.5,
   buttonSoundVolume: 1
 });
 
@@ -152,11 +160,19 @@ const GAME_CONFIG = {
   tilesetImagePath: AssetPaths.tilesetImage,
   playerImagePath: AssetPaths.playerImage,
   startImagePath: AssetPaths.startImage,
+  controlsImagePath: AssetPaths.controlsImage,
+  winImagePath: AssetPaths.winImage,
   tiledStartImageLayerPath: AssetPaths.tiledStartImageLayer,
   bgmPath: AssetPaths.bgm,
   bgmVolume: AudioConfig.bgmVolume,
   buttonSoundPath: AssetPaths.buttonSound,
   buttonSoundVolume: AudioConfig.buttonSoundVolume,
+  jumpSoundPath: AssetPaths.jumpSound,
+  optionsSoundPath: AssetPaths.optionsSound,
+  startScreenSoundPath: AssetPaths.startScreenSound,
+  bookSoundPath: AssetPaths.bookSound,
+  winSoundPath: AssetPaths.winSound,
+  soundEffectVolume: AudioConfig.soundEffectVolume,
   playerIdleTileIds: [...PlayerGrid.idleTileIds],
   playerWalkingTileIds: [...PlayerGrid.walkingTileIds],
   playerScale: PlayerGrid.scale,
@@ -205,9 +221,15 @@ class ChromasightGame {
   constructor(assets) {
     this.assets = assets;
     this.scene = "start";
-    this.currentLevelName = "level_1";
-    this.mode = GAME_CONFIG.initialMode || "colorBlindness";
-    this.unlockedModes = new Set([this.mode]);
+    this.saveManager = assets.saveManager || null;
+    this.saveData = this.saveManager?.load() || createMemorySave();
+    this.currentLevelName = this.saveData.currentLevelName || "level_1";
+    this.mode = MODES.includes(this.saveData.currentMode)
+      ? this.saveData.currentMode
+      : GAME_CONFIG.initialMode;
+    this.unlockedModes = new Set(this.saveData.unlockedModes.filter((mode) => MODES.includes(mode)));
+    if (this.unlockedModes.size === 0) this.unlockedModes.add(GAME_CONFIG.initialMode);
+    if (!this.unlockedModes.has(this.mode)) this.mode = [...this.unlockedModes][0];
     this.cameraX = 0;
     this.cameraY = 0;
     this.showCollisionDebug = false;
@@ -215,6 +237,17 @@ class ChromasightGame {
     this.messageTimer = 0;
     this.lastPortal = null;
     this.currentRespawnName = "";
+    this.totalBooks = countBooksInMaps(this.assets.maps || {});
+    this.collectedBookKeys = collectedBookKeysFromSave(this.assets.maps || {}, this.saveData);
+    this.collectedBooks = this.collectedBookKeys.size;
+    this.hasWon = this.totalBooks > 0 && this.collectedBooks >= this.totalBooks;
+    this.optionsBackButton = {
+      x: (GAME_CONFIG.canvasWidth - 160) / 2,
+      y: GAME_CONFIG.canvasHeight - 80,
+      w: 160,
+      h: 42,
+      name: "Back"
+    };
     this.player = {
       x: 0,
       y: 0,
@@ -243,8 +276,33 @@ class ChromasightGame {
     this.startTiles = tilesFromVisibleTileLayers(map.layers || [], this.tileWidth, this.tileHeight);
     this.startImageLayers = imageLayersFromMap(map.layers || []);
     this.startObjects = objectRectsFromLayers(map.layers || []);
-    this.startButtons = this.startObjects.filter((object) => object.name === "Start");
+    this.startButtons = this.startObjects.filter((object) => object.name === "Start" || object.name === "Controls");
+    if (!this.startButtons.some((button) => button.name === "Controls")) {
+      const startButton = this.startButtons.find((button) => button.name === "Start");
+      this.startButtons.push({
+        name: "Controls",
+        x: startButton ? startButton.x : (GAME_CONFIG.canvasWidth - 160) / 2,
+        y: startButton ? startButton.y + startButton.h + 18 : GAME_CONFIG.canvasHeight - 150,
+        w: startButton ? startButton.w : 160,
+        h: startButton ? startButton.h : 42
+      });
+    }
     this.startTexts = this.startObjects.filter((object) => object.text);
+    if (typeof stopMenuSounds === "function") stopMenuSounds();
+    if (typeof playStartscreenSound === "function") playStartscreenSound();
+  }
+
+  loadControlsScreen() {
+    this.scene = "controls";
+    this.cameraX = 0;
+    this.cameraY = 0;
+    if (typeof stopMenuSounds === "function") stopMenuSounds();
+    if (typeof playOptionsSound === "function") playOptionsSound();
+  }
+
+  returnToStartScreen() {
+    this.hasWon = this.totalBooks > 0 && this.collectedBooks >= this.totalBooks;
+    this.loadStartMap(this.assets.startMap);
   }
 
   loadMap(map, spawnName = null) {
@@ -295,8 +353,20 @@ class ChromasightGame {
       ))
       .map((object) => ({
         ...object,
-        collected: Boolean(object.props.collected || object.props.Picked || object.props.item?.Picked)
+        saveId: itemSaveId(object),
+        collected: this.isItemCollected(object) || Boolean(object.props.collected || object.props.Picked || object.props.item?.Picked)
       }));
+    this.items = this.items.map((item) => {
+      if (item.type !== ObjectTypes.book) return item;
+
+      const key = bookCollectionKey(this.currentLevelName, item);
+      if (item.collected) this.collectedBookKeys.add(key);
+      return {
+        ...item,
+        collected: this.collectedBookKeys.has(key)
+      };
+    });
+    this.collectedBooks = this.collectedBookKeys.size;
     this.textBoxes = this.objects.filter((object) => object.type === ObjectTypes.textBox || object.type === ObjectTypes.textbox);
     this.textTriggers = this.textBoxes.filter((object) => !object.text);
     this.textDisplays = this.textBoxes.filter((object) => object.text);
@@ -333,6 +403,7 @@ class ChromasightGame {
       x: spawn.x,
       y: spawn.y + (spawn.h || this.player.h) - this.player.h
     };
+    this.saveProgress();
   }
 
   respawn(message = "") {
@@ -438,11 +509,13 @@ class ChromasightGame {
 
   tryJump() {
     const p = this.player;
-    if (this.getActiveLadder()) return;
+    if (this.getActiveLadder()) return false;
     if (p.grounded) {
       p.vy = -jumpSpeedForHeight(GAME_CONFIG.maxJumpHeight);
       p.grounded = false;
+      return true;
     }
+    return false;
   }
 
   resolveCollisions(axis) {
@@ -641,10 +714,33 @@ class ChromasightGame {
         if (item.props.redAbilityunlock) this.unlockedModes.add("redBlindness");
         if (item.props.blueAbilityunlock) this.unlockedModes.add("blueBlindness");
         this.setMessage("Visual mode unlocked.");
+      } else if (item.type === ObjectTypes.book) {
+        this.collectedBookKeys.add(bookCollectionKey(this.currentLevelName, item));
+        this.collectedBooks = this.collectedBookKeys.size;
+        if (typeof playBookSound === "function") playBookSound();
+        if (this.collectedBooks >= this.totalBooks && this.totalBooks > 0) {
+          this.markItemCollected(item);
+          this.saveProgress();
+          this.triggerWin();
+          return;
+        }
+        this.setMessage(`Books collected: ${this.collectedBooks}/${this.totalBooks}`);
       } else {
         this.setMessage("Book collected.");
       }
+      this.markItemCollected(item);
+      this.saveProgress();
     }
+  }
+
+  triggerWin() {
+    const shouldPlaySound = !this.hasWon;
+    this.hasWon = true;
+    this.scene = "win";
+    this.cameraX = 0;
+    this.cameraY = 0;
+    if (typeof stopMenuSounds === "function") stopMenuSounds();
+    if (shouldPlaySound && typeof playWinSound === "function") playWinSound();
   }
 
   getActiveTextDisplays() {
@@ -669,6 +765,7 @@ class ChromasightGame {
     const index = available.indexOf(this.mode);
     this.mode = available[(index + direction + available.length) % available.length];
     this.setMessage(`Mode: ${MODE_LABELS[this.mode]}`);
+    this.saveProgress();
   }
 
   isModeSwitchBlocked() {
@@ -701,16 +798,96 @@ class ChromasightGame {
   }
 
   handleMousePressed(x, y) {
-    if (this.scene !== "start") return false;
+    if (this.scene === "start") {
+      const worldX = x + this.cameraX;
+      const worldY = y + this.cameraY;
+      const clickedButton = this.startButtons.find((button) => pointInRect(worldX, worldY, button));
+      if (!clickedButton) return false;
 
-    const worldX = x + this.cameraX;
-    const worldY = y + this.cameraY;
-    const clickedStart = this.startButtons.some((button) => pointInRect(worldX, worldY, button));
-    if (!clickedStart) return false;
+      if (clickedButton.name === "Controls") {
+        this.loadControlsScreen();
+        return true;
+      }
 
-    if (typeof playBgm === "function") playBgm();
-    this.loadLevel("level_1");
-    return true;
+      if (this.hasWon) {
+        this.triggerWin();
+        return true;
+      }
+      if (typeof playBgm === "function") playBgm();
+      const savedLevelName = this.assets.maps?.[this.saveData.currentLevelName]
+        ? this.saveData.currentLevelName
+        : "level_1";
+      this.loadLevel(savedLevelName, this.saveData.currentRespawnName || null);
+      return true;
+    }
+
+    if (this.scene === "controls" && pointInRect(x, y, this.optionsBackButton)) {
+      this.returnToStartScreen();
+      return true;
+    }
+
+    if (this.scene === "win") {
+      this.returnToStartScreen();
+      return true;
+    }
+
+    return false;
+  }
+
+  /** Saves current progression data to the local JSON save store. */
+  saveProgress() {
+    if (!this.saveManager) return;
+
+    this.saveData = this.saveManager.save({
+      ...this.saveData,
+      currentLevelName: this.currentLevelName,
+      currentRespawnName: this.currentRespawnName,
+      currentMode: this.mode,
+      unlockedModes: [...this.unlockedModes]
+    });
+  }
+
+  /**
+   * Checks whether an item has already been collected in the current level.
+   *
+   * @param {object} item Tiled item object.
+   * @returns {boolean}
+   */
+  isItemCollected(item) {
+    const collectedIds = this.saveData.collectedItems?.[this.currentLevelName] || [];
+    return collectedIds.includes(itemSaveId(item));
+  }
+
+  /**
+   * Marks an item as collected inside the JSON save data.
+   *
+   * @param {object} item Runtime item object.
+   */
+  markItemCollected(item) {
+    const saveId = item.saveId || itemSaveId(item);
+    const collectedItems = this.saveData.collectedItems || {};
+    const levelItems = collectedItems[this.currentLevelName] || [];
+    this.saveData = {
+      ...this.saveData,
+      collectedItems: {
+        ...collectedItems,
+        [this.currentLevelName]: [...new Set([...levelItems, saveId])]
+      }
+    };
+  }
+
+  /** Clears saved progress and returns the game to the first level. */
+  resetSaveProgress() {
+    this.saveData = this.saveManager?.reset() || createMemorySave();
+    this.currentLevelName = "level_1";
+    this.mode = GAME_CONFIG.initialMode;
+    this.unlockedModes = new Set([GAME_CONFIG.initialMode]);
+    this.lastPortal = null;
+    this.collectedBookKeys.clear();
+    this.collectedBooks = 0;
+    this.hasWon = false;
+    this.loadLevel("level_1", GAME_CONFIG.defaultSpawnName);
+    this.setMessage("Progress reset.");
   }
 }
 
@@ -844,6 +1021,71 @@ function parseProperties(properties) {
     result[prop.name] = prop.value;
   }
   return result;
+}
+
+/** @returns {object} In-memory save fallback used when localStorage is unavailable. */
+function createMemorySave() {
+  return {
+    currentLevelName: "level_1",
+    currentRespawnName: "",
+    currentMode: GAME_CONFIG.initialMode,
+    unlockedModes: [GAME_CONFIG.initialMode],
+    collectedItems: {}
+  };
+}
+
+/**
+ * Builds a stable save id for a collectible inside one level.
+ *
+ * @param {object} item Tiled item object.
+ * @returns {string}
+ */
+function itemSaveId(item) {
+  return item.name || `${item.type}:${item.id}`;
+}
+
+function countBooksInMaps(maps) {
+  return Object.values(maps).reduce((count, map) => count + countBooksInMap(map), 0);
+}
+
+function countBooksInMap(map) {
+  if (!map || !Array.isArray(map.layers)) return 0;
+
+  return map.layers.reduce((count, layer) => {
+    if (layer.type !== "objectgroup" || !Array.isArray(layer.objects)) return count;
+    return count + layer.objects.filter((object) => object.type === ObjectTypes.book).length;
+  }, 0);
+}
+
+function collectedBookKeysFromSave(maps, saveData) {
+  const collectedItems = saveData?.collectedItems || {};
+  const result = new Set();
+
+  for (const [levelName, map] of Object.entries(maps)) {
+    const savedIds = collectedItems[levelName] || [];
+    if (!Array.isArray(savedIds) || savedIds.length === 0) continue;
+
+    for (const layer of map.layers || []) {
+      if (layer.type !== "objectgroup" || !Array.isArray(layer.objects)) continue;
+      for (const object of layer.objects) {
+        if (object.type !== ObjectTypes.book) continue;
+        const item = {
+          id: object.id,
+          name: object.name || "",
+          type: object.type || "",
+          x: Number(object.x || 0),
+          y: Number(object.y || 0)
+        };
+        if (savedIds.includes(itemSaveId(item))) result.add(bookCollectionKey(levelName, item));
+      }
+    }
+  }
+
+  return result;
+}
+
+function bookCollectionKey(levelName, item) {
+  return `${levelName}:${itemSaveId(item)}`;
 }
 
 function rectsOverlap(a, b) {
