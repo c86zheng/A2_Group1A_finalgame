@@ -1,20 +1,28 @@
 {
-    "activeFile": "level_3.tmj",
+    "activeFile": "level_2.tmj",
     "expandedProjectPaths": [
         "."
     ],
     "file.lastUsedOpenFilter": "全部文件 (*)",
     "fileStates": {
+        "Start.tmj": {
+            "scale": 1,
+            "selectedLayer": 1,
+            "viewCenter": {
+                "x": 480.5,
+                "y": 271.5
+            }
+        },
         "level_1.tmj": {
             "expandedObjectLayers": [
                 2,
                 11
             ],
-            "scale": 1.5,
+            "scale": 0.75,
             "selectedLayer": 3,
             "viewCenter": {
-                "x": 1009,
-                "y": 336
+                "x": 1192.6666666666665,
+                "y": 390.6666666666667
             }
         },
         "level_1.tmx": {
@@ -31,28 +39,28 @@
         },
         "level_2.tmj": {
             "expandedObjectLayers": [
-                3,
                 2,
-                6
+                6,
+                3
             ],
-            "scale": 2,
-            "selectedLayer": 2,
+            "scale": 0.75,
+            "selectedLayer": 3,
             "viewCenter": {
-                "x": 992.25,
-                "y": 480
+                "x": 730,
+                "y": 402.6666666666667
             }
         },
         "level_3.tmj": {
             "expandedObjectLayers": [
                 2,
-                3,
-                6
+                6,
+                3
             ],
             "scale": 1,
-            "selectedLayer": 2,
+            "selectedLayer": 3,
             "viewCenter": {
-                "x": 536.5,
-                "y": 203.5
+                "x": 1152.5,
+                "y": 336.5
             }
         },
         "robotFighter.tsx": {
@@ -77,15 +85,17 @@
         "tiles_packed.tsx",
         "level_1.tmj",
         "level_2.tmj",
-        "level_3.tmj"
+        "level_3.tmj",
+        "Start.tmj"
     ],
     "project": "chromasight.tiled-project",
-    "property.type": "string",
+    "property.type": "collectible",
     "recentFiles": [
         "tiles_packed.tsx",
         "level_1.tmj",
-        "level_2.tmj",
+        "Start.tmj",
         "level_3.tmj",
+        "level_2.tmj",
         "level_1.tmx",
         "robotFighter.tsx"
     ],

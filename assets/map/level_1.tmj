@@ -395,8 +395,8 @@
                          "value":false
                         }, 
                         {
-                         "name":"item",
-                         "propertytype":"item",
+                         "name":"collectible",
+                         "propertytype":"collectible",
                          "type":"class",
                          "value":
                             {
@@ -422,8 +422,8 @@
                  "opacity":1,
                  "properties":[
                         {
-                         "name":"item",
-                         "propertytype":"item",
+                         "name":"collectible",
+                         "propertytype":"collectible",
                          "type":"class",
                          "value":
                             {
@@ -462,8 +462,8 @@
                  "opacity":1,
                  "properties":[
                         {
-                         "name":"item",
-                         "propertytype":"item",
+                         "name":"collectible",
+                         "propertytype":"collectible",
                          "type":"class",
                          "value":
                             {

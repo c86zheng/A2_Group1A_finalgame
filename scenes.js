@@ -94,11 +94,17 @@ ChromasightGame.prototype.drawBoxObject = function (box) {
 };
 
 ChromasightGame.prototype.drawHazardObject = function (hazard) {
+  const faceup = hazard.props.Faceup === true;
+
   for (let y = hazard.y; y < hazard.y + hazard.h; y += this.tileHeight) {
     for (let x = hazard.x; x < hazard.x + hazard.w; x += this.tileWidth) {
       const tileW = Math.min(this.tileWidth, hazard.x + hazard.w - x);
       const tileH = Math.min(this.tileHeight, hazard.y + hazard.h - y);
-      drawTileGid(GAME_CONFIG.hazardGrid.tileGid, x, y, tileW, tileH, this.assets.tilesetImage, this.assets.tilesetMeta, this.firstGid);
+      if (faceup) {
+        drawTileGid(GAME_CONFIG.hazardGrid.tileGid, x, y, tileW, tileH, this.assets.tilesetImage, this.assets.tilesetMeta, this.firstGid);
+      } else {
+        drawVerticallyFlippedTileGid(GAME_CONFIG.hazardGrid.tileGid, x, y, tileW, tileH, this.assets.tilesetImage, this.assets.tilesetMeta, this.firstGid);
+      }
     }
   }
 };
@@ -167,7 +173,7 @@ ChromasightGame.prototype.drawModeBlocks = function () {
 };
 
 ChromasightGame.prototype.drawItems = function () {
-  for (const item of this.items) {
+  for (const item of this.collectible) {
     if (item.collected) continue;
 
     if (item.type === ObjectTypes.key) {
@@ -269,7 +275,7 @@ ChromasightGame.prototype.drawCollisionDebug = function () {
   }
 
   stroke(255, 230, 80, 220);
-  for (const item of this.items) {
+  for (const item of this.collectible) {
     if (!item.collected) this.drawDebugRect(item.x, item.y, item.w, item.h);
   }
 
@@ -332,6 +338,14 @@ function drawTileGid(gid, dx, dy, dw, dh, sheet, meta, firstGid) {
   const sx = (localId % meta.columns) * meta.tilewidth;
   const sy = Math.floor(localId / meta.columns) * meta.tileheight;
   image(sheet, dx, dy, dw, dh, sx, sy, meta.tilewidth, meta.tileheight);
+}
+
+function drawVerticallyFlippedTileGid(gid, dx, dy, dw, dh, sheet, meta, firstGid) {
+  push();
+  translate(dx + dw / 2, dy + dh / 2);
+  scale(1, -1);
+  drawTileGid(gid, -dw / 2, -dh / 2, dw, dh, sheet, meta, firstGid);
+  pop();
 }
 
 /**

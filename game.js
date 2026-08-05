@@ -56,7 +56,6 @@ const ObjectTypes = Object.freeze({
   ladder: "ladder",
   key: "key",
   book: "book",
-  item: "item",
   textBox: "textBox",
   textbox: "textbox"
 });
@@ -345,18 +344,16 @@ class ChromasightGame {
     this.portals = this.objects.filter((object) => object.type === ObjectTypes.portal);
     this.ladders = this.objects.filter((object) => object.type === ObjectTypes.ladder);
     this.hazards = this.objects.filter((object) => object.type === ObjectTypes.hazardBlock);
-    this.items = this.objects
+    this.collectible = this.objects
       .filter((object) => (
         object.type === ObjectTypes.key ||
-        object.type === ObjectTypes.book ||
-        object.type === ObjectTypes.item
+        object.type === ObjectTypes.book
       ))
       .map((object) => ({
         ...object,
-        saveId: itemSaveId(object),
-        collected: this.isItemCollected(object) || Boolean(object.props.collected || object.props.Picked || object.props.item?.Picked)
+        collected: this.isItemCollected(object) || Boolean(object.props.collectible?.Picked)
       }));
-    this.items = this.items.map((item) => {
+    this.collectible = this.collectible.map((item) => {
       if (item.type !== ObjectTypes.book) return item;
 
       const key = bookCollectionKey(this.currentLevelName, item);
@@ -496,10 +493,11 @@ class ChromasightGame {
       p.vy = Math.min(p.vy + GAME_CONFIG.gravity, GAME_CONFIG.maxFallSpeed);
     }
 
+    const previousX = p.x;
     p.x += p.vx;
     p.x = clamp(p.x, 0, Math.max(0, this.mapWidth - p.w));
-    this.resolveBoxInteraction(keys);
-    this.resolveCollisions("x");
+    this.resolveBoxInteraction(keys, previousX);
+    this.resolveCollisions("x", previousX);
 
     p.y += p.vy;
     p.grounded = false;
@@ -518,14 +516,24 @@ class ChromasightGame {
     return false;
   }
 
-  resolveCollisions(axis) {
+  resolveCollisions(axis, previousX = null) {
     const p = this.player;
     for (const rect of this.getSolidRects()) {
       if (!rectsOverlap(p, rect)) continue;
 
       if (axis === "x") {
-        if (p.vx > 0) p.x = rect.x - p.w;
-        if (p.vx < 0) p.x = rect.x + rect.w;
+        if (p.vx === 0) {
+          if (Number.isFinite(previousX) && this.canPlacePlayerAtX(previousX)) p.x = previousX;
+          continue;
+        }
+
+        const targetX = p.vx > 0 ? rect.x - p.w : rect.x + rect.w;
+        if (Number.isFinite(targetX) && this.canPlacePlayerAtX(targetX)) {
+          p.x = targetX;
+        } else if (Number.isFinite(previousX)) {
+          p.x = previousX;
+        }
+        p.x = clamp(p.x, 0, Math.max(0, this.mapWidth - p.w));
         p.vx = 0;
       } else {
         if (p.vy > 0) {
@@ -538,7 +546,7 @@ class ChromasightGame {
     }
   }
 
-  resolveBoxInteraction(keys) {
+  resolveBoxInteraction(keys, previousX = null) {
     if (!keys.interact || Math.abs(this.player.vx) <= 0) return;
 
     const direction = Math.sign(this.player.vx);
@@ -556,10 +564,14 @@ class ChromasightGame {
       if (!pushing && !pulling) continue;
       if (!this.moveBox(box, direction * GAME_CONFIG.boxPushPullSpeed)) continue;
 
-      if (box.x >= this.player.x + this.player.w || direction > 0 && pushing) {
-        this.player.x = box.x - this.player.w;
-      } else {
-        this.player.x = box.x + box.w;
+      const targetX = box.x >= this.player.x + this.player.w || direction > 0 && pushing
+        ? box.x - this.player.w
+        : box.x + box.w;
+      if (this.canPlacePlayerAtX(targetX)) {
+        this.player.x = targetX;
+      } else if (Number.isFinite(previousX)) {
+        this.player.x = previousX;
+        this.player.vx = 0;
       }
       return;
     }
@@ -648,6 +660,15 @@ class ChromasightGame {
     return terrainRects.concat(activeModeRects, ladderTopRects, boxRects);
   }
 
+  canPlacePlayerAtX(x) {
+    const p = this.player;
+    if (!Number.isFinite(x)) return false;
+    if (x < 0 || x + p.w > this.mapWidth) return false;
+
+    const probe = { ...p, x };
+    return !this.getSolidRects().some((rect) => rectsOverlap(probe, rect));
+  }
+
   modeCollision(block) {
     return Boolean(block.modeBlock[`collision_${this.mode}`]);
   }
@@ -705,9 +726,13 @@ class ChromasightGame {
   }
 
   collectItems() {
-    for (const item of this.items) {
+    for (const item of this.collectible) {
       if (item.collected || !rectsOverlap(this.player, item)) continue;
       item.collected = true;
+      item.props.collectible = {
+        ...(item.props.collectible || {}),
+        Picked: true
+      };
 
       if (item.type === ObjectTypes.key) {
         if (typeof playButtonSound === "function") playButtonSound();
@@ -725,8 +750,6 @@ class ChromasightGame {
           return;
         }
         this.setMessage(`Books collected: ${this.collectedBooks}/${this.totalBooks}`);
-      } else {
-        this.setMessage("Book collected.");
       }
       this.markItemCollected(item);
       this.saveProgress();
@@ -854,8 +877,11 @@ class ChromasightGame {
    * @returns {boolean}
    */
   isItemCollected(item) {
-    const collectedIds = this.saveData.collectedItems?.[this.currentLevelName] || [];
-    return collectedIds.includes(itemSaveId(item));
+    const collectedItems = this.saveData.collectedItems?.[this.currentLevelName] || [];
+    return collectedItems.some((savedItem) => (
+      Number(savedItem.id) === Number(item.id) &&
+      savedItem.collectible?.Picked === true
+    ));
   }
 
   /**
@@ -864,14 +890,22 @@ class ChromasightGame {
    * @param {object} item Runtime item object.
    */
   markItemCollected(item) {
-    const saveId = item.saveId || itemSaveId(item);
     const collectedItems = this.saveData.collectedItems || {};
     const levelItems = collectedItems[this.currentLevelName] || [];
+    const nextItem = {
+      id: Number(item.id),
+      collectible: {
+        Picked: Boolean(item.props.collectible?.Picked)
+      }
+    };
+    const nextLevelItems = levelItems
+      .filter((savedItem) => Number(savedItem.id) !== Number(item.id))
+      .concat(nextItem);
     this.saveData = {
       ...this.saveData,
       collectedItems: {
         ...collectedItems,
-        [this.currentLevelName]: [...new Set([...levelItems, saveId])]
+        [this.currentLevelName]: nextLevelItems
       }
     };
   }
@@ -1034,16 +1068,6 @@ function createMemorySave() {
   };
 }
 
-/**
- * Builds a stable save id for a collectible inside one level.
- *
- * @param {object} item Tiled item object.
- * @returns {string}
- */
-function itemSaveId(item) {
-  return item.name || `${item.type}:${item.id}`;
-}
-
 function countBooksInMaps(maps) {
   return Object.values(maps).reduce((count, map) => count + countBooksInMap(map), 0);
 }
@@ -1062,8 +1086,13 @@ function collectedBookKeysFromSave(maps, saveData) {
   const result = new Set();
 
   for (const [levelName, map] of Object.entries(maps)) {
-    const savedIds = collectedItems[levelName] || [];
-    if (!Array.isArray(savedIds) || savedIds.length === 0) continue;
+    const savedItems = collectedItems[levelName] || [];
+    if (!Array.isArray(savedItems) || savedItems.length === 0) continue;
+    const pickedIds = new Set(
+      savedItems
+        .filter((item) => item.collectible?.Picked === true)
+        .map((item) => Number(item.id))
+    );
 
     for (const layer of map.layers || []) {
       if (layer.type !== "objectgroup" || !Array.isArray(layer.objects)) continue;
@@ -1076,7 +1105,7 @@ function collectedBookKeysFromSave(maps, saveData) {
           x: Number(object.x || 0),
           y: Number(object.y || 0)
         };
-        if (savedIds.includes(itemSaveId(item))) result.add(bookCollectionKey(levelName, item));
+        if (pickedIds.has(Number(item.id))) result.add(bookCollectionKey(levelName, item));
       }
     }
   }
@@ -1085,7 +1114,7 @@ function collectedBookKeysFromSave(maps, saveData) {
 }
 
 function bookCollectionKey(levelName, item) {
-  return `${levelName}:${itemSaveId(item)}`;
+  return `${levelName}:${item.id}`;
 }
 
 function rectsOverlap(a, b) {

@@ -66,7 +66,10 @@ class ChromasightSaveData {
   }
 
   /**
-   * Normalizes save shape so older or partially edited JSON remains safe.
+   * Normalizes the current save shape.
+   *
+   * `collectedItems` stores one array per level. Each record keeps the Tiled
+   * object id and the collectible class state used by the game.
    *
    * @param {object} saveData Parsed save object.
    * @returns {object}
@@ -86,9 +89,18 @@ class ChromasightSaveData {
         ? [...new Set(saveData.unlockedModes)]
         : [...defaultSave.unlockedModes],
       collectedItems: Object.fromEntries(
-        Object.entries(collectedItems).map(([levelName, itemIds]) => [
+        Object.entries(collectedItems).map(([levelName, items]) => [
           levelName,
-          Array.isArray(itemIds) ? [...new Set(itemIds)] : []
+          Array.isArray(items)
+            ? items
+                .filter((item) => item && Number.isFinite(Number(item.id)))
+                .map((item) => ({
+                  id: Number(item.id),
+                  collectible: {
+                    Picked: Boolean(item.collectible?.Picked)
+                  }
+                }))
+            : []
         ])
       ),
       updatedAt: saveData.updatedAt || defaultSave.updatedAt
