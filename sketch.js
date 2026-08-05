@@ -89,8 +89,13 @@ function mousePressed() {
 }
 
 function keyPressed() {
+  if (key === "Escape" && game.scene !== "start") {
+    game.returnToStartScreen();
+    return false;
+  }
+
   if (game.scene === "controls") {
-    if (key === " " || key === "Escape" || keyCode === BACKSPACE || keyCode === ENTER) {
+    if (key === " " || keyCode === BACKSPACE || keyCode === ENTER) {
       game.returnToStartScreen();
       return false;
     }
@@ -98,7 +103,7 @@ function keyPressed() {
   }
 
   if (game.scene === "win") {
-    if (key === " " || key === "Escape" || keyCode === BACKSPACE || keyCode === ENTER) {
+    if (key === " " || keyCode === BACKSPACE || keyCode === ENTER) {
       game.returnToStartScreen();
       return false;
     }

@@ -83,9 +83,7 @@ ChromasightGame.prototype.drawWorldObjects = function (objects = this.objects) {
       continue;
     }
 
-    if (object.type === ObjectTypes.portal) {
-      this.drawPortalObject(object);
-    }
+    if (object.type === ObjectTypes.portal) continue;
   }
 };
 
@@ -94,27 +92,19 @@ ChromasightGame.prototype.drawBoxObject = function (box) {
 };
 
 ChromasightGame.prototype.drawHazardObject = function (hazard) {
-  const faceup = hazard.props.Faceup === true;
+  const faceUp = hazard.props.FaceUp === true;
 
   for (let y = hazard.y; y < hazard.y + hazard.h; y += this.tileHeight) {
     for (let x = hazard.x; x < hazard.x + hazard.w; x += this.tileWidth) {
       const tileW = Math.min(this.tileWidth, hazard.x + hazard.w - x);
       const tileH = Math.min(this.tileHeight, hazard.y + hazard.h - y);
-      if (faceup) {
+      if (faceUp) {
         drawTileGid(GAME_CONFIG.hazardGrid.tileGid, x, y, tileW, tileH, this.assets.tilesetImage, this.assets.tilesetMeta, this.firstGid);
       } else {
         drawVerticallyFlippedTileGid(GAME_CONFIG.hazardGrid.tileGid, x, y, tileW, tileH, this.assets.tilesetImage, this.assets.tilesetMeta, this.firstGid);
       }
     }
   }
-};
-
-ChromasightGame.prototype.drawPortalObject = function (portal) {
-  push();
-  fill(255);
-  noStroke();
-  rect(portal.x, portal.y, portal.w, portal.h);
-  pop();
 };
 
 ChromasightGame.prototype.drawTileLayer = function (tiles) {
@@ -177,7 +167,7 @@ ChromasightGame.prototype.drawItems = function () {
     if (item.collected) continue;
 
     if (item.type === ObjectTypes.key) {
-      drawTileGid(GAME_CONFIG.keyTileGid, item.x, item.y, item.w, item.h, this.assets.tilesetImage, this.assets.tilesetMeta, this.firstGid);
+      drawTileGid(keyTileGidFor(item), item.x, item.y, item.w, item.h, this.assets.tilesetImage, this.assets.tilesetMeta, this.firstGid);
       continue;
     }
 
@@ -192,6 +182,11 @@ ChromasightGame.prototype.drawItems = function () {
     rect(item.x, item.y, item.w, item.h, 2);
   }
 };
+
+function keyTileGidFor(item) {
+  if (item.props.blueAbilityunlock) return GAME_CONFIG.keyTileGids.blue;
+  return GAME_CONFIG.keyTileGids.red;
+}
 
 ChromasightGame.prototype.drawTextBoxes = function () {
   const activeTextDisplays = this.getActiveTextDisplays();

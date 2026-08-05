@@ -80,7 +80,8 @@ const PlayerGrid = Object.freeze({
 
 /** Tile gids used for objects that are drawn from object layers. */
 const TileGids = Object.freeze({
-  key: 296,
+  redKey: 296,
+  blueKey: 297,
   book: 317,
   box: 221,
   hazard: 248,
@@ -183,7 +184,10 @@ const GAME_CONFIG = {
   maxJumpDistance: PhysicsConfig.maxJumpDistance,
   modeSwitchOverlapLimit: PhysicsConfig.modeSwitchOverlapLimit,
   boxPushPullSpeed: PhysicsConfig.boxPushPullSpeed,
-  keyTileGid: TileGids.key,
+  keyTileGids: {
+    red: TileGids.redKey,
+    blue: TileGids.blueKey
+  },
   bookTileGid: TileGids.book,
   boxTileGid: TileGids.box,
   hazardTileGid: TileGids.hazard,
@@ -562,15 +566,20 @@ class ChromasightGame {
       const pulling = !overlapsBox && ((direction < 0 && boxOnPlayerRight && rightGap <= 10) || (direction > 0 && boxOnPlayerLeft && leftGap <= 10));
 
       if (!pushing && !pulling) continue;
+      const originalBoxX = box.x;
       if (!this.moveBox(box, direction * GAME_CONFIG.boxPushPullSpeed)) continue;
 
       const targetX = box.x >= this.player.x + this.player.w || direction > 0 && pushing
         ? box.x - this.player.w
         : box.x + box.w;
-      if (this.canPlacePlayerAtX(targetX)) {
+      if (this.canPlacePlayerAtX(targetX, { ignoreBox: box })) {
         this.player.x = targetX;
       } else if (Number.isFinite(previousX)) {
+        box.x = originalBoxX;
         this.player.x = previousX;
+        this.player.vx = 0;
+      } else {
+        box.x = originalBoxX;
         this.player.vx = 0;
       }
       return;
@@ -654,19 +663,21 @@ class ChromasightGame {
           .filter((rect) => Number.isFinite(rect.h) && rect.h > 0);
 
     const boxRects = includeBoxes
-      ? this.boxes.map((box) => ({ x: box.x, y: box.y, w: box.w, h: box.h }))
+      ? this.boxes
+          .filter((box) => box !== options.ignoreBox)
+          .map((box) => ({ x: box.x, y: box.y, w: box.w, h: box.h }))
       : [];
 
     return terrainRects.concat(activeModeRects, ladderTopRects, boxRects);
   }
 
-  canPlacePlayerAtX(x) {
+  canPlacePlayerAtX(x, options = {}) {
     const p = this.player;
     if (!Number.isFinite(x)) return false;
     if (x < 0 || x + p.w > this.mapWidth) return false;
 
     const probe = { ...p, x };
-    return !this.getSolidRects().some((rect) => rectsOverlap(probe, rect));
+    return !this.getSolidRects(options).some((rect) => rectsOverlap(probe, rect));
   }
 
   modeCollision(block) {
