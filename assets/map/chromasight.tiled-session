@@ -57,10 +57,10 @@
                 3
             ],
             "scale": 1,
-            "selectedLayer": 3,
+            "selectedLayer": 5,
             "viewCenter": {
-                "x": 1152.5,
-                "y": 336.5
+                "x": 574.5,
+                "y": 278
             }
         },
         "robotFighter.tsx": {
