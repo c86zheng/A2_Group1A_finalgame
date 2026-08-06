@@ -1,28 +1,16 @@
 {
-    "activeFile": "level_2.tmj",
+    "activeFile": "level_1.tmj",
     "expandedProjectPaths": [
         "."
     ],
     "file.lastUsedOpenFilter": "全部文件 (*)",
     "fileStates": {
-        "Start.tmj": {
-            "scale": 1,
-            "selectedLayer": 1,
-            "viewCenter": {
-                "x": 480.5,
-                "y": 271.5
-            }
-        },
         "level_1.tmj": {
-            "expandedObjectLayers": [
-                11,
-                2
-            ],
-            "scale": 0.5,
-            "selectedLayer": 3,
+            "scale": 0.6818700396825397,
+            "selectedLayer": 0,
             "viewCenter": {
-                "x": 843,
-                "y": -18
+                "x": 1007.5233695849853,
+                "y": 336.5744007565562
             }
         },
         "level_1.tmx": {
@@ -37,38 +25,13 @@
                 "y": 336.5
             }
         },
-        "level_2.tmj": {
-            "expandedObjectLayers": [
-                6,
-                3,
-                2
-            ],
-            "scale": 2,
-            "selectedLayer": 3,
-            "viewCenter": {
-                "x": 527.25,
-                "y": 441.5
-            }
-        },
-        "level_3.tmj": {
-            "expandedObjectLayers": [
-                6,
-                3
-            ],
-            "scale": 1,
-            "selectedLayer": 5,
-            "viewCenter": {
-                "x": 751.5,
-                "y": 347
-            }
-        },
         "robotFighter.tsx": {
             "dynamicWrapping": false,
             "scaleInDock": 1,
             "scaleInEditor": 4
         },
         "tiles_packed.tsx": {
-            "scaleInDock": 1,
+            "scaleInDock": 1.5,
             "scaleInEditor": 1
         }
     },
@@ -81,21 +44,16 @@
     "map.lastUsedFormat": "tmx",
     "map.width": 63,
     "openFiles": [
-        "tiles_packed.tsx",
-        "level_1.tmj",
-        "level_2.tmj",
-        "level_3.tmj",
-        "Start.tmj"
-    ],
-    "project": "chromasight.tiled-project",
-    "property.type": "collectible",
-    "recentFiles": [
-        "tiles_packed.tsx",
-        "level_1.tmj",
-        "Start.tmj",
-        "level_3.tmj",
-        "level_2.tmj",
         "level_1.tmx",
+        "tiles_packed.tsx",
+        "level_1.tmj"
+    ],
+    "project": "未命名.tiled-project",
+    "property.type": "string",
+    "recentFiles": [
+        "level_1.tmx",
+        "tiles_packed.tsx",
+        "level_1.tmj",
         "robotFighter.tsx"
     ],
     "tileset.lastUsedFilter": "Tiled 图块集文件 (*.tsx *.xml)",

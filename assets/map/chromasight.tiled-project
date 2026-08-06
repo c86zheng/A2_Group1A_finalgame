@@ -16,11 +16,10 @@
             "id": 12,
             "members": [
                 {
-                    "name": "collectible",
-                    "propertyType": "collectible",
+                    "name": "item",
+                    "propertyType": "item",
                     "type": "class",
                     "value": {
-                        "Picked": false
                     }
                 }
             ],
@@ -45,31 +44,6 @@
             "members": [
             ],
             "name": "box",
-            "type": "class",
-            "useAs": [
-                "property",
-                "map",
-                "layer",
-                "object",
-                "tile",
-                "tileset",
-                "wangcolor",
-                "wangset",
-                "project"
-            ]
-        },
-        {
-            "color": "#ffa0a0a4",
-            "drawFill": true,
-            "id": 17,
-            "members": [
-                {
-                    "name": "Picked",
-                    "type": "bool",
-                    "value": false
-                }
-            ],
-            "name": "collectible",
             "type": "class",
             "useAs": [
                 "property",
@@ -112,17 +86,17 @@
             ]
         },
         {
-            "color": "#ffff0000",
+            "color": "#ffa0a0a4",
             "drawFill": true,
-            "id": 22,
+            "id": 17,
             "members": [
                 {
-                    "name": "FaceUp",
+                    "name": "Picked",
                     "type": "bool",
                     "value": false
                 }
             ],
-            "name": "HazardBlock",
+            "name": "item",
             "type": "class",
             "useAs": [
                 "property",
@@ -147,11 +121,10 @@
                     "value": false
                 },
                 {
-                    "name": "collectible",
-                    "propertyType": "collectible",
+                    "name": "item",
+                    "propertyType": "item",
                     "type": "class",
                     "value": {
-                        "Picked": false
                     }
                 },
                 {
@@ -247,6 +220,20 @@
                 "tileset",
                 "wangcolor",
                 "wangset",
+                "project"
+            ]
+        },
+        {
+            "color": "#ffff0000",
+            "drawFill": true,
+            "id": 9,
+            "members": [
+            ],
+            "name": "permanentHazardBlock",
+            "type": "class",
+            "useAs": [
+                "property",
+                "object",
                 "project"
             ]
         },
