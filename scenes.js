@@ -4,149 +4,32 @@ ChromasightGame.prototype.draw = function () {
     return;
   }
 
-  if (this.scene === "controls") {
-    this.drawControlsScreen();
-    return;
-  }
-
-  if (this.scene === "story") {
-    this.drawStoryScreen();
-    return;
-  }
-
-  if (this.scene === "win") {
-    this.drawWinScreen();
-    return;
-  }
-
   this.drawWorld();
   this.drawUi();
 };
 
 ChromasightGame.prototype.drawStartScreen = function () {
   push();
-  if (this.assets.startImage) {
-    image(this.assets.startImage, 0, 0, width, height);
-  } else {
-    translate(-Math.floor(this.cameraX), -Math.floor(this.cameraY));
-    this.drawImageLayers(this.startImageLayers || []);
-    this.drawTileLayer(this.startTiles || []);
-  }
+  translate(-Math.floor(this.cameraX), -Math.floor(this.cameraY));
+  this.drawImageLayers(this.startImageLayers || []);
+  this.drawTileLayer(this.startTiles || []);
   for (const textBox of this.startTexts || []) {
     this.drawTextBox(textBox);
   }
-  for (const button of this.startButtons || []) {
-    this.drawMenuButton(button, button.name);
-  }
   pop();
 };
-
-ChromasightGame.prototype.drawControlsScreen = function () {
-  push();
-  image(this.assets.controlsImage, 0, 0, width, height);
-  this.drawMenuButton(this.optionsBackButton, "Back");
-  pop();
-};
-
-ChromasightGame.prototype.drawWinScreen = function () {
-  push();
-  image(this.assets.winImage, 0, 0, width, height);
-  pop();
-};
-
-ChromasightGame.prototype.drawStoryScreen = function () {
-  push();
-  noStroke();
-  fill(0);
-  rect(0, 0, width, height);
-
-  if (this.assets.storyVideo) {
-    drawMediaCover(this.assets.storyVideo, 0, 0, width, height);
-  }
-
-  const isPlaying = Boolean(this.assets.storyVideo?.elt && !this.assets.storyVideo.elt.paused && !this.assets.storyVideo.elt.ended);
-  this.drawMenuButton(this.storyPlayButton, isPlaying ? "Pause" : "Play");
-  this.drawMenuButton(this.storySkipButton, "Skip");
-  pop();
-};
-
-function drawMediaCover(media, dx, dy, dw, dh) {
-  const sourceWidth = media?.elt?.videoWidth || media?.width || dw;
-  const sourceHeight = media?.elt?.videoHeight || media?.height || dh;
-  const sourceAspect = sourceWidth / sourceHeight;
-  const destAspect = dw / dh;
-
-  let sx = 0;
-  let sy = 0;
-  let sw = sourceWidth;
-  let sh = sourceHeight;
-
-  if (sourceAspect > destAspect) {
-    sw = sourceHeight * destAspect;
-    sx = (sourceWidth - sw) / 2;
-  } else if (sourceAspect < destAspect) {
-    sh = sourceWidth / destAspect;
-    sy = (sourceHeight - sh) / 2;
-  }
-
-  image(media, dx, dy, dw, dh, sx, sy, sw, sh);
-}
 
 ChromasightGame.prototype.drawWorld = function () {
   push();
   translate(-Math.floor(this.cameraX), -Math.floor(this.cameraY));
-  this.drawTileLayer(this.decor);
-  this.drawModeBlocks();
   this.drawTileLayer(this.terrain);
-  this.drawWorldObjects(this.worldObjects);
-  this.drawBoxes();
+  this.drawModeBlocks();
+  this.drawTileLayer(this.decor);
   this.drawItems();
-  this.drawWorldObjects(this.spikeObjects);
+  this.drawTextBoxes();
   this.drawPlayer();
   if (this.showCollisionDebug) this.drawCollisionDebug();
   pop();
-};
-
-ChromasightGame.prototype.drawBoxes = function () {
-  for (const box of this.boxes) {
-    this.drawBoxObject(box);
-  }
-};
-
-ChromasightGame.prototype.drawWorldObjects = function (objects = this.objects) {
-  for (const object of objects) {
-    if (object.type === ObjectTypes.box) {
-      this.drawBoxObject(object);
-      continue;
-    }
-
-    if (object.type === ObjectTypes.hazardBlock) {
-      this.drawHazardObject(object);
-      continue;
-    }
-
-    if (object.type === ObjectTypes.portal) continue;
-  }
-};
-
-ChromasightGame.prototype.drawBoxObject = function (box) {
-  drawTileGid(GAME_CONFIG.boxGrid.tileGid, box.x, box.y, box.w, box.h, this.assets.tilesetImage, this.assets.tilesetMeta, this.firstGid);
-};
-
-ChromasightGame.prototype.drawHazardObject = function (hazard) {
-  const faceUp = hazard.props.FaceUp === true;
-
-  for (let y = hazard.y; y < hazard.y + hazard.h; y += this.tileHeight) {
-    for (let x = hazard.x; x < hazard.x + hazard.w; x += this.tileWidth) {
-      const tileW = Math.min(this.tileWidth, hazard.x + hazard.w - x);
-      const tileH = Math.min(this.tileHeight, hazard.y + hazard.h - y);
-      if (faceUp) {
-        drawTileGid(GAME_CONFIG.hazardGrid.tileGid, x, y, tileW, tileH, this.assets.tilesetImage, this.assets.tilesetMeta, this.firstGid);
-      } else {
-        drawVerticallyFlippedTileGid(GAME_CONFIG.hazardGrid.tileGid, x, y, tileW, tileH, this.assets.tilesetImage, this.assets.tilesetMeta, this.firstGid);
-      }
-    }
-  }
 };
 
 ChromasightGame.prototype.drawTileLayer = function (tiles) {
@@ -157,37 +40,10 @@ ChromasightGame.prototype.drawTileLayer = function (tiles) {
 
 ChromasightGame.prototype.drawImageLayers = function (layers) {
   for (const layer of layers) {
-    if (layer.image === GAME_CONFIG.tiledStartImageLayerPath) {
+    if (layer.image === "../img/Start.png") {
       image(this.assets.startImage, layer.x, layer.y, layer.imagewidth, layer.imageheight);
     }
   }
-};
-
-ChromasightGame.prototype.drawMenuButton = function (button, label) {
-  if (!button) return;
-
-  const hovered = typeof mouseX === "number" && typeof mouseY === "number" && pointInRect(mouseX, mouseY, button);
-  const primary = label === "Start";
-
-  push();
-  noStroke();
-  fill(12, 16, 24, 120);
-  rect(button.x + 5, button.y + 6, button.w, button.h, 12);
-  stroke(25, 28, 36);
-  strokeWeight(3);
-  if (primary) {
-    fill(hovered ? 255 : 246, hovered ? 220 : 213, hovered ? 108 : 74, hovered ? 255 : 235);
-  } else {
-    fill(hovered ? 241 : 222, hovered ? 241 : 225, hovered ? 241 : 230, hovered ? 255 : 235);
-  }
-  rect(button.x, button.y, button.w, button.h, 12);
-  noStroke();
-  fill(25, 28, 36);
-  textAlign(CENTER, CENTER);
-  textStyle(BOLD);
-  textSize(hovered ? 27 : 25);
-  text(label, button.x + button.w / 2, button.y + button.h / 2 + 1);
-  pop();
 };
 
 ChromasightGame.prototype.drawModeBlocks = function () {
@@ -205,15 +61,15 @@ ChromasightGame.prototype.drawModeBlocks = function () {
 };
 
 ChromasightGame.prototype.drawItems = function () {
-  for (const item of this.collectible) {
+  for (const item of this.items) {
     if (item.collected) continue;
 
-    if (item.type === ObjectTypes.key) {
-      drawTileGid(keyTileGidFor(item), item.x, item.y, item.w, item.h, this.assets.tilesetImage, this.assets.tilesetMeta, this.firstGid);
+    if (item.type === "key") {
+      drawTileGid(GAME_CONFIG.keyTileGid, item.x, item.y, item.w, item.h, this.assets.tilesetImage, this.assets.tilesetMeta, this.firstGid);
       continue;
     }
 
-    if (item.type === ObjectTypes.book) {
+    if (item.type === "book") {
       drawTileGid(GAME_CONFIG.bookTileGid, item.x, item.y, item.w, item.h, this.assets.tilesetImage, this.assets.tilesetMeta, this.firstGid);
       continue;
     }
@@ -224,11 +80,6 @@ ChromasightGame.prototype.drawItems = function () {
     rect(item.x, item.y, item.w, item.h, 2);
   }
 };
-
-function keyTileGidFor(item) {
-  if (item.props.blueAbilityunlock) return GAME_CONFIG.keyTileGids.blue;
-  return GAME_CONFIG.keyTileGids.red;
-}
 
 ChromasightGame.prototype.drawTextBoxes = function () {
   const activeTextDisplays = this.getActiveTextDisplays();
@@ -242,76 +93,30 @@ ChromasightGame.prototype.drawTextBox = function (textBox) {
   const message = textData.text || "";
   if (!message) return;
 
-  const isHintText = typeof HINT_TEXTS !== "undefined" && Object.prototype.hasOwnProperty.call(HINT_TEXTS, textBox.name);
-  if (!isHintText) {
-    push();
-    textAlign(textAlignFromTiled(textData.halign), TOP);
-    textSize(Number(textData.pixelsize || 12));
-    stroke(40, 45, 56);
-    strokeWeight(3);
-    fill(255);
-    text(message, textBox.x, textBox.y, textBox.w, textBox.h);
-    pop();
-    return;
-  }
-
   push();
-  const boxW = Math.min(680, width - 48);
-  const boxH = Math.max(58, Math.min(116, textHeightForMessage(message, boxW - 32, Number(textData.pixelsize || 16)) + 28));
-  const boxX = (width - boxW) / 2;
-  const boxY = 70;
-
-  noStroke();
-  fill(8, 12, 18, 220);
-  rect(boxX, boxY, boxW, boxH, 8);
-  stroke(255, 255, 255, 55);
-  strokeWeight(1);
-  noFill();
-  rect(boxX + 0.5, boxY + 0.5, boxW - 1, boxH - 1, 8);
-
   textAlign(textAlignFromTiled(textData.halign), TOP);
   textSize(Number(textData.pixelsize || 12));
-  noStroke();
+  stroke(40, 45, 56);
+  strokeWeight(3);
   fill(255);
-  text(message, boxX + 16, boxY + 14, boxW - 32, boxH - 24);
+
+  text(message, textBox.x, textBox.y, textBox.w, textBox.h);
   pop();
 };
-
-function textHeightForMessage(message, maxWidth, size) {
-  push();
-  textSize(size);
-  const words = String(message).split(/\s+/);
-  let line = "";
-  let lines = 1;
-
-  for (const word of words) {
-    const testLine = line ? `${line} ${word}` : word;
-    if (line && textWidth(testLine) > maxWidth) {
-      lines += 1;
-      line = word;
-    } else {
-      line = testLine;
-    }
-  }
-
-  pop();
-  return lines * size * 1.3;
-}
 
 ChromasightGame.prototype.drawPlayer = function () {
   const p = this.player;
   const frame = playerFrameFor(p, this.assets.playerMeta);
-  const spriteBox = GAME_CONFIG.playerSpriteBox;
-  const drawScale = p.h / spriteBox.h;
-  const drawWidth = frame.sw * drawScale;
-  const drawHeight = frame.sh * drawScale;
-  const spriteCenterX = (spriteBox.x + spriteBox.w / 2) * drawScale;
-  const spriteBottomY = (spriteBox.y + spriteBox.h) * drawScale;
-  const playerCenterX = p.x + p.w / 2;
-  const drawX = p.facing < 0
-    ? playerCenterX - drawWidth + spriteCenterX
-    : playerCenterX - spriteCenterX;
-  const drawY = p.y + p.h - spriteBottomY;
+  const cropBottom = GAME_CONFIG.playerSourceCropBottom;
+  const collisionBox = GAME_CONFIG.playerCollisionBox;
+  const sourceHeight = frame.sh - cropBottom;
+  const drawWidth = frame.sw * GAME_CONFIG.playerScale;
+  const drawHeight = sourceHeight * GAME_CONFIG.playerScale;
+  const collisionOffsetX = p.facing < 0
+    ? frame.sw - collisionBox.x - collisionBox.w
+    : collisionBox.x;
+  const drawX = p.x - collisionOffsetX * GAME_CONFIG.playerScale;
+  const drawY = p.y - collisionBox.y * GAME_CONFIG.playerScale;
 
   push();
   translate(drawX + drawWidth / 2, drawY);
@@ -326,7 +131,7 @@ ChromasightGame.prototype.drawPlayer = function () {
     frame.sx,
     frame.sy,
     frame.sw,
-    frame.sh
+    sourceHeight
   );
   pop();
 };
@@ -357,7 +162,7 @@ ChromasightGame.prototype.drawCollisionDebug = function () {
   }
 
   stroke(255, 230, 80, 220);
-  for (const item of this.collectible) {
+  for (const item of this.items) {
     if (!item.collected) this.drawDebugRect(item.x, item.y, item.w, item.h);
   }
 
@@ -397,49 +202,10 @@ ChromasightGame.prototype.drawUi = function () {
     rect(width - 220, height - 54, 204, 38, 6);
     fill(255);
     textAlign(LEFT, TOP);
-    text("Press F to enter portal", width - 204, height - 44);
+    text("Press W to enter portal", width - 204, height - 44);
   }
-
-  if (this.showCollisionDebug) this.drawDebugShortcutMenu();
-  this.drawTextBoxes();
 };
 
-ChromasightGame.prototype.drawDebugShortcutMenu = function () {
-  const lines = [
-    "1 - level_1",
-    "2 - level_2",
-    "3 - level_3",
-    "4 - story",
-    "5 - ending"
-  ];
-  const boxW = 132;
-  const boxH = 104;
-  const boxX = width - boxW - 16;
-  const boxY = 14;
-
-  push();
-  noStroke();
-  fill(8, 12, 18, 210);
-  rect(boxX, boxY, boxW, boxH, 6);
-  fill(240, 245, 250);
-  textAlign(LEFT, TOP);
-  textSize(13);
-  text(lines.join("\n"), boxX + 12, boxY + 10);
-  pop();
-};
-
-/**
- * Draws a single gid from a Tiled tileset image.
- *
- * @param {number} gid Global tile id from the TMJ file.
- * @param {number} dx Destination x.
- * @param {number} dy Destination y.
- * @param {number} dw Destination width.
- * @param {number} dh Destination height.
- * @param {p5.Image} sheet Tileset image.
- * @param {{tilewidth: number, tileheight: number, columns: number}} meta Parsed TSX grid data.
- * @param {number} firstGid First gid declared by the TMJ tileset reference.
- */
 function drawTileGid(gid, dx, dy, dw, dh, sheet, meta, firstGid) {
   if (!sheet || !meta || !gid) return;
 
@@ -449,21 +215,6 @@ function drawTileGid(gid, dx, dy, dw, dh, sheet, meta, firstGid) {
   image(sheet, dx, dy, dw, dh, sx, sy, meta.tilewidth, meta.tileheight);
 }
 
-function drawVerticallyFlippedTileGid(gid, dx, dy, dw, dh, sheet, meta, firstGid) {
-  push();
-  translate(dx + dw / 2, dy + dh / 2);
-  scale(1, -1);
-  drawTileGid(gid, -dw / 2, -dh / 2, dw, dh, sheet, meta, firstGid);
-  pop();
-}
-
-/**
- * Selects the current robot frame according to movement state.
- *
- * @param {object} player Player physics state.
- * @param {object} meta Parsed robot TSX metadata.
- * @returns {{sx: number, sy: number, sw: number, sh: number}}
- */
 function playerFrameFor(player, meta) {
   let tileId = 0;
 

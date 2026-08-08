@@ -231,8 +231,8 @@
                          "value":false
                         }, 
                         {
-                         "name":"collectible",
-                         "propertytype":"collectible",
+                         "name":"item",
+                         "propertytype":"item",
                          "type":"class",
                          "value":
                             {
@@ -258,8 +258,8 @@
                  "opacity":1,
                  "properties":[
                         {
-                         "name":"collectible",
-                         "propertytype":"collectible",
+                         "name":"item",
+                         "propertytype":"item",
                          "type":"class",
                          "value":
                             {
@@ -270,8 +270,8 @@
                  "type":"book",
                  "visible":true,
                  "width":32,
-                 "x":1792,
-                 "y":224
+                 "x":1856,
+                 "y":192
                 }, 
                 {
                  "height":48,
@@ -324,8 +324,8 @@
                  "opacity":1,
                  "properties":[
                         {
-                         "name":"collectible",
-                         "propertytype":"collectible",
+                         "name":"item",
+                         "propertytype":"item",
                          "type":"class",
                          "value":
                             {
@@ -338,24 +338,6 @@
                  "width":32,
                  "x":1056,
                  "y":384
-                }, 
-                {
-                 "height":64,
-                 "id":53,
-                 "name":"Hint_03",
-                 "opacity":1,
-                 "properties":[
-                        {
-                         "name":"show",
-                         "type":"bool",
-                         "value":false
-                        }],
-                 "rotation":0,
-                 "type":"textBox",
-                 "visible":true,
-                 "width":64,
-                 "x":1280,
-                 "y":224
                 }],
          "opacity":1,
          "type":"objectgroup",
@@ -594,7 +576,7 @@
          "y":0
         }],
  "nextlayerid":12,
- "nextobjectid":54,
+ "nextobjectid":53,
  "orientation":"orthogonal",
  "renderorder":"right-down",
  "tiledversion":"1.12.2",
